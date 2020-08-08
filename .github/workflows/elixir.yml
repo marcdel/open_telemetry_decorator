@@ -1,0 +1,72 @@
+# Modifying the actions? Don't like pushing to GitHub to find out whether your changes worked?
+# Consider act: https://github.com/nektos/act
+#
+# WARNING: you'll need the 18.2GB GitHub-compatible Docker image:
+#   act -P ubuntu-18.04=nektos/act-environments-ubuntu:18.04
+
+name: Elixir CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    name: Elixir ${{matrix.elixir}} on OTP ${{matrix.otp}}
+    strategy:
+      matrix:
+        otp: ["21.3", "22.3", "23.0"]
+        elixir: ["1.8", "1.9", "1.10"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Elixir
+        uses: actions/setup-elixir@v1
+        with:
+          elixir-version: ${{matrix.elixir}}
+          otp-version: ${{matrix.otp}}
+      - name: Restore dependencies cache
+        uses: actions/cache@v2
+        env:
+          cache-name: deps
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ env.cache-name }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ env.cache-name }}-
+      - name: Cache _build
+        uses: actions/cache@v1.1.2
+        env:
+          cache-name: _build
+        with:
+          path: _build
+          key: ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ env.cache-name }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ env.cache-name }}-
+      - name: mix deps.get
+        run: |
+          mix deps.get
+          mix deps.unlock --unused
+          mix deps.clean --unused
+          git diff --exit-code mix.lock
+      - name: mix compile (dev)
+        run: |
+          mix deps.compile
+          mix compile
+      - name: mix compile (test)
+        run: |
+          mix deps.compile
+          mix compile
+        env:
+          MIX_ENV: test
+      - name: mix test
+        run: mix test --trace
+      - name: mix format
+        run: |
+          mix format --check-formatted --dry-run --check-equivalent
+      - name: mix credo
+        run: mix credo --strict
+      - run: mix docs
+      - run: mix dialyzer
