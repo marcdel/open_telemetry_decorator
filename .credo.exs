@@ -68,7 +68,7 @@
         #
         ## Consistency Checks
         #
-        {Credo.Check.Consistency.ExceptionNames, []},
+        {Credo.Check.Consistency.ExceptionNames, false},
         {Credo.Check.Consistency.LineEndings, []},
         {Credo.Check.Consistency.ParameterPatternMatching, []},
         {Credo.Check.Consistency.SpaceAroundOperators, []},
@@ -87,7 +87,7 @@
         # If you don't want TODO comments to cause `mix credo` to fail, just
         # set this value to 0 (zero).
         #
-        {Credo.Check.Design.TagTODO, [exit_status: 2]},
+        {Credo.Check.Design.TagTODO, false},
         {Credo.Check.Design.TagFIXME, []},
 
         #
@@ -120,7 +120,7 @@
         {Credo.Check.Refactor.CyclomaticComplexity, []},
         {Credo.Check.Refactor.FunctionArity, []},
         {Credo.Check.Refactor.LongQuoteBlocks, []},
-        {Credo.Check.Refactor.MapInto, []},
+        {Credo.Check.Refactor.MapInto, false},
         {Credo.Check.Refactor.MatchInCondition, []},
         {Credo.Check.Refactor.NegatedConditionsInUnless, []},
         {Credo.Check.Refactor.NegatedConditionsWithElse, []},
@@ -135,7 +135,7 @@
         {Credo.Check.Warning.ExpensiveEmptyEnumCheck, []},
         {Credo.Check.Warning.IExPry, []},
         {Credo.Check.Warning.IoInspect, []},
-        {Credo.Check.Warning.LazyLogging, []},
+        {Credo.Check.Warning.LazyLogging, false},
         {Credo.Check.Warning.MixEnv, false},
         {Credo.Check.Warning.OperationOnSameValues, []},
         {Credo.Check.Warning.OperationWithConstantResult, []},
@@ -156,21 +156,21 @@
         #
         # Controversial and experimental checks (opt-in, just replace `false` with `[]`)
         #
-        {Credo.Check.Readability.StrictModuleLayout, false},
+        {Credo.Check.Readability.StrictModuleLayout, ignore: [:module_attribute]},
         {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
         {Credo.Check.Consistency.UnusedVariableNames, false},
         {Credo.Check.Design.DuplicatedCode, false},
         {Credo.Check.Readability.AliasAs, false},
         {Credo.Check.Readability.MultiAlias, false},
         {Credo.Check.Readability.Specs, false},
-        {Credo.Check.Readability.SinglePipe, false},
+        {Credo.Check.Readability.SinglePipe, []},
         {Credo.Check.Readability.WithCustomTaggedTuple, false},
         {Credo.Check.Refactor.ABCSize, false},
         {Credo.Check.Refactor.AppendSingleItem, false},
         {Credo.Check.Refactor.DoubleBooleanNegation, false},
         {Credo.Check.Refactor.ModuleDependencies, false},
         {Credo.Check.Refactor.NegatedIsNil, false},
-        {Credo.Check.Refactor.PipeChainStart, false},
+        {Credo.Check.Refactor.PipeChainStart, []},
         {Credo.Check.Refactor.VariableRebinding, false},
         {Credo.Check.Warning.LeakyEnvironment, false},
         {Credo.Check.Warning.MapGetUnsafePass, false},
