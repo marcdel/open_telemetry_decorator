@@ -32,8 +32,8 @@ defmodule OpenTelemetryDecorator do
   end
   ```
   """
-  def trace(event_name, attr_keys \\ [], body, context) do
-    validate_args(event_name, attr_keys)
+  def trace(span_name, attr_keys \\ [], body, context) do
+    validate_args(span_name, attr_keys)
 
     quote location: :keep do
       require OpenTelemetry.Span
@@ -41,7 +41,7 @@ defmodule OpenTelemetryDecorator do
 
       parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
-      OpenTelemetry.Tracer.with_span unquote(event_name), %{parent: parent_ctx} do
+      OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
         result = unquote(body)
 
         reportable_attrs =
@@ -65,9 +65,9 @@ defmodule OpenTelemetryDecorator do
   @doc """
   This method has to be public because it's used within the macro, but it shouldn't be called directly.
   """
-  def validate_args(event_name, attr_keys) do
-    if not (is_binary(event_name) and event_name != ""),
-      do: raise(ArgumentError, "event_name must be a non-empty string")
+  def validate_args(span_name, attr_keys) do
+    if not (is_binary(span_name) and span_name != ""),
+      do: raise(ArgumentError, "span_name must be a non-empty string")
 
     if not (is_list(attr_keys) and atoms_or_lists_of_atoms_only?(attr_keys)),
       do:

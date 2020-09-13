@@ -31,11 +31,11 @@ defmodule OpenTelemetryDecoratorTest do
 
       OpenTelemetryDecorator.validate_args("A Fancier Name", [])
 
-      assert_raise ArgumentError, ~r/^event_name/, fn ->
+      assert_raise ArgumentError, ~r/^span_name/, fn ->
         OpenTelemetryDecorator.validate_args("", [])
       end
 
-      assert_raise ArgumentError, ~r/^event_name/, fn ->
+      assert_raise ArgumentError, ~r/^span_name/, fn ->
         OpenTelemetryDecorator.validate_args(nil, [])
       end
     end

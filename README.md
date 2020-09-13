@@ -9,7 +9,7 @@ A function decorator for OpenTelemetry traces.
 
 ## Usage
 
-The event name can be any string.
+The span name can be any string.
 
     defmodule MyApp.Worker do
       use OpenTelemetryDecorator
@@ -20,7 +20,7 @@ The event name can be any string.
         do_more_work(arg1)
       end
 
-      @decorate trace("MyApp::Worker::do_work")
+      @decorate trace("MyApp::Worker::do_more_work")
       def do_more_work(arg1) do
         ...doing more work
       end
