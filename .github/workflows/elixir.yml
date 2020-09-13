@@ -18,8 +18,8 @@ jobs:
     name: Elixir ${{matrix.elixir}} on OTP ${{matrix.otp}}
     strategy:
       matrix:
-        otp: ["21.3", "22.3", "23.0"]
-        elixir: ["1.8", "1.9", "1.10"]
+        otp: ["23.0"]
+        elixir: ["1.10"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Elixir
