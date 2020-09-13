@@ -26,7 +26,7 @@ A function decorator for OpenTelemetry traces.
 
 We use `OpenTelemetry.Tracer.current_span_ctx()` to automatically link new spans to the current trace (if it exists and is in the same process). So the above example will link the `do_work` and `do_more_work` spans for you by default. 
 
-You can provide set span attributes by specifying a list of variable names as atoms.
+You can provide span attributes by specifying a list of variable names as atoms.
 
 This list can include...
 
