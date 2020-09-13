@@ -2,29 +2,58 @@ defmodule OpenTelemetryDecoratorTest do
   use ExUnit.Case, async: true
   doctest OpenTelemetryDecorator
 
+  defmodule TestAdder do
+    use OpenTelemetryDecorator
+
+    @decorate trace("test_adder.add", [:a, :b, :result])
+    def add(a, b) do
+      sum = a + b
+
+      span = OpenTelemetry.Tracer.current_span_ctx()
+
+      assert nil != OpenTelemetry.Span.trace_id(span)
+      assert nil != OpenTelemetry.Span.span_id(span)
+
+      {:ok, sum}
+    end
+  end
+
+  test "no crash!" do
+    assert {:ok, 3} = TestAdder.add(1, 2)
+
+    # I'd like to be able to assert useful things about the trace/span here
+    # but I'll need to do more digging because it's not obvious how to do that.
+  end
+
   describe "validate_args" do
-    test "event name must be a non-empty list of atoms" do
-      OpenTelemetryDecorator.validate_args([:name, :space, :event], [])
+    test "event name must be a non-empty string" do
+      OpenTelemetryDecorator.validate_args("name_space.event", [])
+
+      OpenTelemetryDecorator.validate_args("A Fancier Name", [])
 
       assert_raise ArgumentError, ~r/^event_name/, fn ->
-        OpenTelemetryDecorator.validate_args("name.space.event", [])
+        OpenTelemetryDecorator.validate_args("", [])
+      end
+
+      assert_raise ArgumentError, ~r/^event_name/, fn ->
+        OpenTelemetryDecorator.validate_args(nil, [])
       end
     end
 
     test "attr_keys can be empty" do
-      OpenTelemetryDecorator.validate_args([:name, :space, :event], [])
+      OpenTelemetryDecorator.validate_args("event", [])
     end
 
     test "attrs_keys must be atoms" do
-      OpenTelemetryDecorator.validate_args([:name, :space, :event], [:variable])
+      OpenTelemetryDecorator.validate_args("event", [:variable])
 
       assert_raise ArgumentError, ~r/^attr_keys/, fn ->
-        OpenTelemetryDecorator.validate_args([:name, :space, :event], ["variable"])
+        OpenTelemetryDecorator.validate_args("event", ["variable"])
       end
     end
 
     test "attrs_keys can contain nested lists of atoms" do
-      OpenTelemetryDecorator.validate_args([:name, :space, :event], [:variable, [:obj, :key]])
+      OpenTelemetryDecorator.validate_args("event", [:variable, [:obj, :key]])
     end
   end
 

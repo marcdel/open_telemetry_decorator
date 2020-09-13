@@ -9,16 +9,18 @@ A function decorator for OpenTelemetry traces.
 
 ## Usage
 
+The event name can be any string.
+
     defmodule MyApp.Worker do
       use OpenTelemetryDecorator
 
-      @decorate trace([:my_app, :worker, :do_work])
+      @decorate trace("my_app.worker.do_work")
       def do_work(arg1, arg2) do
         ...doing work
         do_more_work(arg1)
       end
 
-      @decorate trace([:my_app, :worker, :do_more_work])
+      @decorate trace("MyApp::Worker::do_work")
       def do_more_work(arg1) do
         ...doing more work
       end
@@ -32,12 +34,12 @@ This list can include...
 
 Any variables (in the top level closure) available when the function exits:
 
-    defmodule MyApp.Worker do
+    defmodule MyApp.Math do
       use OpenTelemetryDecorator
 
-      @decorate trace([:my_app, :worker, :do_work], [:arg1, :arg2, :thing1])
-      def do_work(arg1, arg2) do
-        thing1 = arg1.count + arg2.count
+      @decorate trace("my_app.math.add", [:a, :b, :sum])
+      def add(a, b) do
+        sum = a + b
         {:ok, thing1}
       end
     end
@@ -45,12 +47,12 @@ Any variables (in the top level closure) available when the function exits:
     
 The result of the function by including the atom `:result`:
 
-    defmodule MyApp.Worker do
+    defmodule MyApp.Math do
       use OpenTelemetryDecorator
 
-      @decorate trace([:my_app, :worker, :do_work], [:result])
-      def do_work(arg1, arg2) do
-        thing1 = arg1.count + arg2.count
+      @decorate trace("my_app.math.add", [:result])
+      def add(a, b) do
+        sum = a + b
         {:ok, thing1}
       end
     end
@@ -61,14 +63,13 @@ Map/struct properties using nested lists of atoms:
     defmodule MyApp.Worker do
       use OpenTelemetryDecorator
 
-      @decorate trace([:my_app, :worker, :do_work], [[:arg1, :count], [:arg2, :count]])
+      @decorate trace("my_app.worker.do_work", [[:arg1, :count], [:arg2, :count], :total])
       def do_work(arg1, arg2) do
-        thing1 = arg1.count + arg2.count
-        {:ok, thing1}
+        total = arg1.count + arg2.count
+        {:ok, total}
       end
     end
 
-<!-- MDOC -->
 ## Installation
 
 Add `open_telemetry_decorator` to your list of dependencies in `mix.exs` and do a `mix deps.get`:
@@ -80,6 +81,8 @@ def deps do
   ]
 end
 ```
+
+<!-- MDOC -->
 
 ## Development
 

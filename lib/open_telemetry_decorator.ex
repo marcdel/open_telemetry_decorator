@@ -6,7 +6,7 @@ defmodule OpenTelemetryDecorator do
              |> String.split("<!-- MDOC -->")
              |> Enum.filter(&(&1 =~ ~R{<!\-\-\ INCLUDE\ \-\->}))
              |> Enum.join("\n")
-               # compensate for anchor id differences between ExDoc and GitHub
+             # compensate for anchor id differences between ExDoc and GitHub
              |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
 
   use Decorator.Define, trace: 1, trace: 2
@@ -24,18 +24,16 @@ defmodule OpenTelemetryDecorator do
   defmodule MyApp.Worker do
     use OpenTelemetryDecorator
 
-    @decorate trace([:my_app, :worker, :do_work], [:arg1, [:arg2, :count], :thing1, :result])
+    @decorate trace("my_app.worker.do_work", [:arg1, [:arg2, :count], :total, :result])
     def do_work(arg1, arg2) do
-      thing1 = arg1.count + arg2.count
-      {:ok, thing1}
+      total = arg1.count + arg2.count
+      {:ok, total}
     end
   end
   ```
   """
   def trace(event_name, attr_keys \\ [], body, context) do
     validate_args(event_name, attr_keys)
-
-    event_name = Enum.join(event_name, ".")
 
     quote location: :keep do
       require OpenTelemetry.Span
@@ -68,10 +66,8 @@ defmodule OpenTelemetryDecorator do
   This method has to be public because it's used within the macro, but it shouldn't be called directly.
   """
   def validate_args(event_name, attr_keys) do
-    if not (is_list(event_name) and atoms_only?(event_name) and not Enum.empty?(event_name)),
-      do: raise(ArgumentError, "event_name must be a non-empty list of atoms")
-
-    if Enum.empty?(event_name), do: raise(ArgumentError, "event_name is empty")
+    if not (is_binary(event_name) and event_name != ""),
+      do: raise(ArgumentError, "event_name must be a non-empty string")
 
     if not (is_list(attr_keys) and atoms_or_lists_of_atoms_only?(attr_keys)),
       do:
@@ -159,6 +155,4 @@ defmodule OpenTelemetryDecorator do
   defp atoms_or_lists_of_atoms_only?(item) when is_atom(item) do
     true
   end
-
-  defp atoms_only?(list), do: Enum.all?(list, &is_atom/1)
 end
