@@ -2,206 +2,119 @@ defmodule OpenTelemetryDecoratorTest do
   use ExUnit.Case, async: true
   doctest OpenTelemetryDecorator
 
-  defmodule TestAdder do
+  require OpenTelemetry.Tracer
+  require OpenTelemetry.Span
+
+  # Make span methods available
+  require Record
+
+  for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/ot_span.hrl") do
+    Record.defrecord(name, spec)
+  end
+
+  setup [:telemetry_pid_reporter]
+
+  defmodule Example do
     use OpenTelemetryDecorator
 
-    @decorate trace("test_adder.add", [:a, :b, :result])
-    def add(a, b) do
-      sum = a + b
+    @decorate trace("Example.step", [:id, :result])
+    def step(id), do: {:ok, id}
 
-      span = OpenTelemetry.Tracer.current_span_ctx()
+    @decorate trace("Example.workflow", [:count, :result])
+    def workflow(count), do: Enum.map(1..count, fn id -> step(id) end)
 
-      assert nil != OpenTelemetry.Span.trace_id(span)
-      assert nil != OpenTelemetry.Span.span_id(span)
+    @decorate trace("Example.numbers", [:up_to])
+    def numbers(up_to), do: [1..up_to]
 
-      {:ok, sum}
-    end
-  end
+    @decorate trace("Example.find", [:id, [:user, :name], :error, :_even, :result])
+    def find(id) do
+      _even = rem(id, 2) == 0
+      user = %{id: id, name: "my user"}
 
-  test "no crash!" do
-    assert {:ok, 3} = TestAdder.add(1, 2)
+      case id do
+        1 ->
+          {:ok, user}
 
-    # I'd like to be able to assert useful things about the trace/span here
-    # but I'll need to do more digging because it's not obvious how to do that.
-  end
-
-  describe "validate_args" do
-    test "event name must be a non-empty string" do
-      OpenTelemetryDecorator.validate_args("name_space.event", [])
-
-      OpenTelemetryDecorator.validate_args("A Fancier Name", [])
-
-      assert_raise ArgumentError, ~r/^span_name/, fn ->
-        OpenTelemetryDecorator.validate_args("", [])
-      end
-
-      assert_raise ArgumentError, ~r/^span_name/, fn ->
-        OpenTelemetryDecorator.validate_args(nil, [])
+        error ->
+          {:error, error}
       end
     end
-
-    test "attr_keys can be empty" do
-      OpenTelemetryDecorator.validate_args("event", [])
-    end
-
-    test "attrs_keys must be atoms" do
-      OpenTelemetryDecorator.validate_args("event", [:variable])
-
-      assert_raise ArgumentError, ~r/^attr_keys/, fn ->
-        OpenTelemetryDecorator.validate_args("event", ["variable"])
-      end
-    end
-
-    test "attrs_keys can contain nested lists of atoms" do
-      OpenTelemetryDecorator.validate_args("event", [:variable, [:obj, :key]])
-    end
   end
 
-  describe "get_reportable_attrs" do
-    test "all together" do
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs(
-          [count: 10, _name: "user name", obj: %{id: 1}],
-          [:count, :_name, [:obj, :id], :result],
-          {:ok, :success}
-        )
-
-      assert attrs == [result: {:ok, :success}, obj_id: 1, count: 10, name: "user name"]
+  describe "trace" do
+    test "does not modify inputs or function result" do
+      assert Example.step(1) == {:ok, 1}
     end
-  end
 
-  describe "take_attrs" do
-    test "handles flat attributes" do
-      assert OpenTelemetryDecorator.get_reportable_attrs([id: 1], [:id]) == [id: 1]
+    test "automatically links spans" do
+      Example.workflow(2)
+
+      assert_receive {:span,
+                      span(
+                        name: "Example.workflow",
+                        trace_id: parent_trace_id,
+                        attributes: [result: "[ok: 1, ok: 2]", count: 2]
+                      )}
+
+      assert_receive {:span,
+                      span(
+                        name: "Example.step",
+                        trace_id: ^parent_trace_id,
+                        attributes: [result: {:ok, 1}, id: 1]
+                      )}
+
+      assert_receive {:span,
+                      span(
+                        name: "Example.step",
+                        trace_id: ^parent_trace_id,
+                        attributes: [result: {:ok, 2}, id: 2]
+                      )}
+    end
+
+    test "handles simple attributes" do
+      Example.find(1)
+      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
+      assert Keyword.fetch!(attrs, :id) == 1
     end
 
     test "handles nested attributes" do
-      assert OpenTelemetryDecorator.get_reportable_attrs([obj: %{id: 1}], [[:obj, :id]]) == [
-               obj_id: 1
-             ]
+      Example.find(1)
+      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
+      assert Keyword.fetch!(attrs, :user_name) == "my user"
     end
 
-    test "handles flat and nested attributes" do
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs([error: "whoops", obj: %{id: 1}], [
-          :error,
-          [:obj, :id]
-        ])
-
-      assert attrs == [obj_id: 1, error: "whoops"]
+    test "handles handles underscored attributes" do
+      Example.find(2)
+      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
+      assert Keyword.fetch!(attrs, :even) == true
     end
 
-    test "can take the top level element and a nested attribute" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([obj: %{id: 1}], [:obj, [:obj, :id]])
-      assert attrs == [obj_id: 1, obj: "%{id: 1}"]
+    test "does not include result unless asked for" do
+      Example.numbers(1000)
+      assert_receive {:span, span(name: "Example.numbers", attributes: attrs)}
+      assert Keyword.has_key?(attrs, :result) == false
     end
 
-    test "handles multiply nested attributes" do
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs([obj: %{user: %{id: 2}}], [[:obj, :user, :id]])
-
-      assert attrs == [obj_user_id: 2]
-
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs(
-          [obj: %{user: %{track: %{id: 3}}}],
-          [[:obj, :user, :track, :id]]
-        )
-
-      assert attrs == [obj_user_track_id: 3]
-    end
-
-    test "does not add attribute if missing" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([obj: %{}], [[:obj, :id]])
-      assert attrs == []
-
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([], [[:obj, :id]])
-      assert attrs == []
+    test "does not include variables not in scope when the function exists" do
+      Example.find(098)
+      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
+      assert Keyword.has_key?(attrs, :error) == false
     end
   end
 
-  describe "maybe_add_result" do
-    test "when :result is given, adds result to the list" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([], [:result], {:ok, "include me"})
-      assert attrs == [result: {:ok, "include me"}]
+  def telemetry_pid_reporter(_) do
+    ExUnit.CaptureLog.capture_log(fn -> :application.stop(:opentelemetry) end)
 
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs([id: 10], [:result, :id], {:ok, "include me"})
+    :application.set_env(:opentelemetry, :tracer, :ot_tracer_default)
 
-      assert attrs == [result: {:ok, "include me"}, id: 10]
-    end
+    :application.set_env(:opentelemetry, :processors, [
+      {:ot_batch_processor, %{scheduled_delay_ms: 1}}
+    ])
 
-    test "when :result is missing, does not add result to the list" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([], [], {:ok, "include me"})
-      assert attrs == []
+    :application.start(:opentelemetry)
 
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs([name: "blah"], [:name], {:ok, "include me"})
+    :ot_batch_processor.set_exporter(:ot_exporter_pid, self())
 
-      assert attrs == [name: "blah"]
-    end
-  end
-
-  describe "remove_underscores" do
-    test "removes underscores from keys" do
-      assert OpenTelemetryDecorator.get_reportable_attrs([_id: 1], [:_id]) == [id: 1]
-
-      assert OpenTelemetryDecorator.get_reportable_attrs([_id: 1, _name: "asd"], [:_id, :_name]) ==
-               [
-                 id: 1,
-                 name: "asd"
-               ]
-    end
-
-    test "doesn't modify keys without underscores" do
-      assert OpenTelemetryDecorator.get_reportable_attrs([_id: 1, name: "asd"], [:_id, :name]) ==
-               [
-                 id: 1,
-                 name: "asd"
-               ]
-    end
-  end
-
-  describe "stringify_list" do
-    test "doesn't modify strings" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([string_attr: "hello"], [:string_attr])
-      assert attrs == [string_attr: "hello"]
-    end
-
-    test "doesn't modify integers" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([int_attr: 12], [:int_attr])
-      assert attrs == [int_attr: 12]
-    end
-
-    test "stringifies maps" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([obj: %{id: 10}], [:obj])
-      assert attrs == [obj: "%{id: 10}"]
-    end
-
-    defmodule TestStruct do
-      defstruct [:id, :name]
-    end
-
-    test "stringifies structs" do
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs([obj: %TestStruct{id: 10, name: "User1"}], [
-          :obj
-        ])
-
-      assert attrs == [obj: "%OpenTelemetryDecoratorTest.TestStruct{id: 10, name: \"User1\"}"]
-    end
-
-    test "stringifies lists" do
-      attrs = OpenTelemetryDecorator.get_reportable_attrs([matches: [1, 2, 3, 4]], [:matches])
-      assert attrs == [matches: "[1, 2, 3, 4]"]
-
-      attrs =
-        OpenTelemetryDecorator.get_reportable_attrs(
-          [matches: [{"user 1", "user 2"}, {"user 3", "user 4"}]],
-          [:matches]
-        )
-
-      assert attrs == [matches: "[{\"user 1\", \"user 2\"}, {\"user 3\", \"user 4\"}]"]
-    end
+    :ok
   end
 end
