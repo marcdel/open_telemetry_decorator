@@ -17,16 +17,16 @@ defmodule OpenTelemetryDecoratorTest do
   defmodule Example do
     use OpenTelemetryDecorator
 
-    @decorate trace("Example.step", [:id, :result])
+    @decorate trace("Example.step", include: [:id, :result])
     def step(id), do: {:ok, id}
 
-    @decorate trace("Example.workflow", [:count, :result])
+    @decorate trace("Example.workflow", include: [:count, :result])
     def workflow(count), do: Enum.map(1..count, fn id -> step(id) end)
 
-    @decorate trace("Example.numbers", [:up_to])
+    @decorate trace("Example.numbers", include: [:up_to])
     def numbers(up_to), do: [1..up_to]
 
-    @decorate trace("Example.find", [:id, [:user, :name], :error, :_even, :result])
+    @decorate trace("Example.find", include: [:id, [:user, :name], :error, :_even, :result])
     def find(id) do
       _even = rem(id, 2) == 0
       user = %{id: id, name: "my user"}

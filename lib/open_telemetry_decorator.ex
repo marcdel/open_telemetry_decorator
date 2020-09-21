@@ -24,7 +24,7 @@ defmodule OpenTelemetryDecorator do
   defmodule MyApp.Worker do
     use OpenTelemetryDecorator
 
-    @decorate trace("my_app.worker.do_work", [:arg1, [:arg2, :count], :total, :result])
+    @decorate trace("my_app.worker.do_work", include: [:arg1, [:arg2, :count], :total, :result])
     def do_work(arg1, arg2) do
       total = arg1.count + arg2.count
       {:ok, total}
@@ -32,8 +32,9 @@ defmodule OpenTelemetryDecorator do
   end
   ```
   """
-  def trace(span_name, attr_keys \\ [], body, context) do
-    Validator.validate_args(span_name, attr_keys)
+  def trace(span_name, opts \\ [], body, context) do
+    include = Keyword.get(opts, :include, [])
+    Validator.validate_args(span_name, include)
 
     quote location: :keep do
       require OpenTelemetry.Span
@@ -44,9 +45,9 @@ defmodule OpenTelemetryDecorator do
       OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
         result = unquote(body)
 
-        reportable_attrs = Attributes.get(Kernel.binding(), unquote(attr_keys), result)
+        included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
 
-        OpenTelemetry.Span.set_attributes(reportable_attrs)
+        OpenTelemetry.Span.set_attributes(included_attrs)
 
         result
       end

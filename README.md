@@ -37,7 +37,7 @@ Any variables (in the top level closure) available when the function exits:
     defmodule MyApp.Math do
       use OpenTelemetryDecorator
 
-      @decorate trace("my_app.math.add", [:a, :b, :sum])
+      @decorate trace("my_app.math.add", include: [:a, :b, :sum])
       def add(a, b) do
         sum = a + b
         {:ok, thing1}
@@ -50,7 +50,7 @@ The result of the function by including the atom `:result`:
     defmodule MyApp.Math do
       use OpenTelemetryDecorator
 
-      @decorate trace("my_app.math.add", [:result])
+      @decorate trace("my_app.math.add", include: [:result])
       def add(a, b) do
         sum = a + b
         {:ok, thing1}
@@ -63,7 +63,7 @@ Map/struct properties using nested lists of atoms:
     defmodule MyApp.Worker do
       use OpenTelemetryDecorator
 
-      @decorate trace("my_app.worker.do_work", [[:arg1, :count], [:arg2, :count], :total])
+      @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
       def do_work(arg1, arg2) do
         total = arg1.count + arg2.count
         {:ok, total}
