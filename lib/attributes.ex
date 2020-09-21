@@ -58,7 +58,7 @@ defmodule Attributes do
         key
         |> Atom.to_string()
         |> String.trim_leading("_")
-        |> String.to_atom()
+        |> String.to_existing_atom()
 
       {key, value}
     end)
