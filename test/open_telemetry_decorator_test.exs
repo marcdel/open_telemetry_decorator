@@ -17,16 +17,16 @@ defmodule OpenTelemetryDecoratorTest do
   defmodule Example do
     use OpenTelemetryDecorator
 
-    @decorate trace(name: "Example.step", include: [:id, :result])
+    @decorate trace("Example.step", include: [:id, :result])
     def step(id), do: {:ok, id}
 
-    @decorate trace(name: "Example.workflow", include: [:count, :result])
+    @decorate trace("Example.workflow", include: [:count, :result])
     def workflow(count), do: Enum.map(1..count, fn id -> step(id) end)
 
-    @decorate trace(name: "Example.numbers", include: [:up_to])
+    @decorate trace("Example.numbers", include: [:up_to])
     def numbers(up_to), do: [1..up_to]
 
-    @decorate trace(name: "Example.find", include: [:id, [:user, :name], :error, :_even, :result])
+    @decorate trace("Example.find", include: [:id, [:user, :name], :error, :_even, :result])
     def find(id) do
       _even = rem(id, 2) == 0
       user = %{id: id, name: "my user"}
@@ -40,14 +40,8 @@ defmodule OpenTelemetryDecoratorTest do
       end
     end
 
-    @decorate trace(name: "Example.no_include")
+    @decorate trace("Example.no_include")
     def no_include(opts), do: {:ok, opts}
-
-    @decorate trace(include: [:opts])
-    def default_name(opts), do: {:ok, opts}
-
-    @decorate trace()
-    def default_name_no_include(opts), do: {:ok, opts}
   end
 
   describe "trace" do
@@ -113,26 +107,6 @@ defmodule OpenTelemetryDecoratorTest do
     test "does not include anything unless specified" do
       Example.no_include(include_me: "nope")
       assert_receive {:span, span(name: "Example.no_include", attributes: [])}
-    end
-
-    test "span name is generated if not given" do
-      Example.default_name(a: 12)
-
-      assert_receive {:span,
-                      span(
-                        name: "OpenTelemetryDecoratorTest.Example.default_name/1",
-                        attributes: [opts: "[a: 12]"]
-                      )}
-    end
-
-    test "can be called with no args" do
-      Example.default_name_no_include(a: 42)
-
-      assert_receive {:span,
-                      span(
-                        name: "OpenTelemetryDecoratorTest.Example.default_name_no_include/1",
-                        attributes: []
-                      )}
     end
   end
 
