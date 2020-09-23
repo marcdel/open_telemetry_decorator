@@ -26,6 +26,20 @@ The span name can be any string.
       end
     end
 
+This decorator inserts all of code to add a span to the registered tracer into your method at compile time. In the example above, the `do_work` method would become something like this:
+
+    def do_work(arg1, arg2) do
+      require OpenTelemetry.Span
+      require OpenTelemetry.Tracer
+
+      parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
+      OpenTelemetry.Tracer.with_span "my_app.worker.do_work", %{parent: parent_ctx} do
+        ...doing work
+        do_more_work(arg1)
+      end
+    end
+
 We use `OpenTelemetry.Tracer.current_span_ctx()` to automatically link new spans to the current trace (if it exists and is in the same process). So the above example will link the `do_work` and `do_more_work` spans for you by default. 
 
 You can provide span attributes by specifying a list of variable names as atoms.
