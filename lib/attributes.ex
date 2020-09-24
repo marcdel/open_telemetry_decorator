@@ -17,23 +17,25 @@ defmodule Attributes do
     {keys, nested_keys} = Enum.split_with(attr_keys, &is_atom/1)
 
     attrs = Keyword.take(bound_variables, keys)
-
-    nested_attrs =
-      nested_keys
-      |> Enum.map(fn key_list ->
-        key = key_list |> Enum.join("_") |> String.to_atom()
-        {obj_key, other_keys} = List.pop_at(key_list, 0)
-
-        with {:ok, obj} <- Keyword.fetch(bound_variables, obj_key),
-             {:ok, value} <- take_nested_attr(obj, other_keys) do
-          {key, value}
-        else
-          _ -> nil
-        end
-      end)
-      |> Enum.reject(&is_nil/1)
+    nested_attrs = take_nested_attrs(bound_variables, nested_keys)
 
     Keyword.merge(nested_attrs, attrs)
+  end
+
+  defp take_nested_attrs(bound_variables, nested_keys) do
+    nested_keys
+    |> Enum.map(fn key_list ->
+      key = key_list |> Enum.join("_") |> String.to_atom()
+      {obj_key, other_keys} = List.pop_at(key_list, 0)
+
+      with {:ok, obj} <- Keyword.fetch(bound_variables, obj_key),
+           {:ok, value} <- take_nested_attr(obj, other_keys) do
+        {key, value}
+      else
+        _ -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
   end
 
   defp take_nested_attr(obj, keys) do
