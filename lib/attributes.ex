@@ -10,7 +10,6 @@ defmodule Attributes do
     |> take_attrs(reportable_attr_keys)
     |> maybe_add_result(reportable_attr_keys, result)
     |> remove_underscores()
-    |> stringify_list()
     |> Enum.into([])
   end
 
@@ -63,14 +62,4 @@ defmodule Attributes do
       {key, value}
     end)
   end
-
-  defp stringify_list(attrs) do
-    Enum.map(attrs, fn {key, value} -> {key, stringify(value)} end)
-  end
-
-  defp stringify(thing) when is_map(thing) or is_struct(thing) or is_list(thing) do
-    inspect(thing)
-  end
-
-  defp stringify(thing), do: thing
 end

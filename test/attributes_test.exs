@@ -24,7 +24,7 @@ defmodule AttributesTest do
 
     test "can take the top level element and a nested attribute" do
       attrs = Attributes.get([obj: %{id: 1}], [:obj, [:obj, :id]])
-      assert attrs == [obj_id: 1, obj: "%{id: 1}"]
+      assert attrs == [obj_id: 1, obj: %{id: 1}]
     end
 
     test "handles multiply nested attributes" do
@@ -87,49 +87,6 @@ defmodule AttributesTest do
                  id: 1,
                  name: "asd"
                ]
-    end
-  end
-
-  describe "stringify_list" do
-    test "doesn't modify strings" do
-      attrs = Attributes.get([string_attr: "hello"], [:string_attr])
-      assert attrs == [string_attr: "hello"]
-    end
-
-    test "doesn't modify integers" do
-      attrs = Attributes.get([int_attr: 12], [:int_attr])
-      assert attrs == [int_attr: 12]
-    end
-
-    test "stringifies maps" do
-      attrs = Attributes.get([obj: %{id: 10}], [:obj])
-      assert attrs == [obj: "%{id: 10}"]
-    end
-
-    defmodule TestStruct do
-      defstruct [:id, :name]
-    end
-
-    test "stringifies structs" do
-      attrs =
-        Attributes.get([obj: %TestStruct{id: 10, name: "User1"}], [
-          :obj
-        ])
-
-      assert attrs == [obj: "%AttributesTest.TestStruct{id: 10, name: \"User1\"}"]
-    end
-
-    test "stringifies lists" do
-      attrs = Attributes.get([matches: [1, 2, 3, 4]], [:matches])
-      assert attrs == [matches: "[1, 2, 3, 4]"]
-
-      attrs =
-        Attributes.get(
-          [matches: [{"user 1", "user 2"}, {"user 3", "user 4"}]],
-          [:matches]
-        )
-
-      assert attrs == [matches: "[{\"user 1\", \"user 2\"}, {\"user 3\", \"user 4\"}]"]
     end
   end
 end

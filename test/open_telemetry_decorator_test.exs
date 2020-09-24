@@ -56,7 +56,7 @@ defmodule OpenTelemetryDecoratorTest do
                       span(
                         name: "Example.workflow",
                         trace_id: parent_trace_id,
-                        attributes: [result: "[ok: 1, ok: 2]", count: 2]
+                        attributes: [result: [ok: 1, ok: 2], count: 2]
                       )}
 
       assert_receive {:span,
