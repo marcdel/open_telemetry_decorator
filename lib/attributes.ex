@@ -2,10 +2,6 @@ defmodule Attributes do
   @moduledoc false
 
   def get(bound_variables, reportable_attr_keys, result \\ nil) do
-    get_reportable_attrs(bound_variables, reportable_attr_keys, result)
-  end
-
-  defp get_reportable_attrs(bound_variables, reportable_attr_keys, result) do
     bound_variables
     |> take_attrs(reportable_attr_keys)
     |> maybe_add_result(reportable_attr_keys, result)

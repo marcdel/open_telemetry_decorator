@@ -5,46 +5,46 @@ defmodule OpenTelemetryDecoratorTest do
   require OpenTelemetry.Tracer
   require OpenTelemetry.Span
 
-  # Make span methods available
   require Record
 
+  # Make span methods available
   for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/ot_span.hrl") do
     Record.defrecord(name, spec)
   end
 
   setup [:telemetry_pid_reporter]
 
-  defmodule Example do
-    use OpenTelemetryDecorator
+  describe "trace" do
+    defmodule Example do
+      use OpenTelemetryDecorator
 
-    @decorate trace("Example.step", include: [:id, :result])
-    def step(id), do: {:ok, id}
+      @decorate trace("Example.step", include: [:id, :result])
+      def step(id), do: {:ok, id}
 
-    @decorate trace("Example.workflow", include: [:count, :result])
-    def workflow(count), do: Enum.map(1..count, fn id -> step(id) end)
+      @decorate trace("Example.workflow", include: [:count, :result])
+      def workflow(count), do: Enum.map(1..count, fn id -> step(id) end)
 
-    @decorate trace("Example.numbers", include: [:up_to])
-    def numbers(up_to), do: [1..up_to]
+      @decorate trace("Example.numbers", include: [:up_to])
+      def numbers(up_to), do: [1..up_to]
 
-    @decorate trace("Example.find", include: [:id, [:user, :name], :error, :_even, :result])
-    def find(id) do
-      _even = rem(id, 2) == 0
-      user = %{id: id, name: "my user"}
+      @decorate trace("Example.find", include: [:id, [:user, :name], :error, :_even, :result])
+      def find(id) do
+        _even = rem(id, 2) == 0
+        user = %{id: id, name: "my user"}
 
-      case id do
-        1 ->
-          {:ok, user}
+        case id do
+          1 ->
+            {:ok, user}
 
-        error ->
-          {:error, error}
+          error ->
+            {:error, error}
+        end
       end
+
+      @decorate trace("Example.no_include")
+      def no_include(opts), do: {:ok, opts}
     end
 
-    @decorate trace("Example.no_include")
-    def no_include(opts), do: {:ok, opts}
-  end
-
-  describe "trace" do
     test "does not modify inputs or function result" do
       assert Example.step(1) == {:ok, 1}
     end
@@ -107,6 +107,38 @@ defmodule OpenTelemetryDecoratorTest do
     test "does not include anything unless specified" do
       Example.no_include(include_me: "nope")
       assert_receive {:span, span(name: "Example.no_include", attributes: [])}
+    end
+  end
+
+  describe "simple_trace" do
+    defmodule Math do
+      use OpenTelemetryDecorator
+
+      @decorate simple_trace()
+      def add(a, b), do: a + b
+
+      @decorate simple_trace("math.subtraction")
+      def subtract(a, b), do: a - b
+    end
+
+    test "automatically adds inputs, outputs, and generates span name" do
+      Math.add(2, 3)
+
+      assert_receive {:span,
+                      span(
+                        name: "OpenTelemetryDecoratorTest.Math.add/2",
+                        attributes: [a: 2, b: 3, result: 5]
+                      )}
+    end
+
+    test "span name can be specified" do
+      Math.subtract(3, 2)
+
+      assert_receive {:span,
+                      span(
+                        name: "math.subtraction",
+                        attributes: [a: 3, b: 2, result: 1]
+                      )}
     end
   end
 

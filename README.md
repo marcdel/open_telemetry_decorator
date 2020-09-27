@@ -7,40 +7,71 @@
 <!-- INCLUDE -->
 A function decorator for OpenTelemetry traces.
 
+## Installation
+
+Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We include the `opentelemetry_api` package, but you'll need to add `opentelemetry` yourself in order to report spans and traces.
+
+```elixir
+def deps do
+  [
+    {:open_telemetry_decorator, "~> 0.4.0"},
+    {:opentelemetry, "~> 0.4.0"}
+  ]
+end
+```
+
+Then follow the directions for the exporter of your choice to send traces to to zipkin, honeycomb, etc.
+
+https://github.com/garthk/opentelemetry_honeycomb
+
+https://github.com/opentelemetry-beam/opentelemetry_zipkin
+
 ## Usage
 
-The span name can be any string.
+Add `use OpenTelemetryDecorator` to the module, and decorate any methods you want to trace with `@decorate trace("span name")` or `@decorate simple_trace("span name")`.
 
-    defmodule MyApp.Worker do
-      use OpenTelemetryDecorator
+The `simple_trace` decorator will automatically add your input parameters and the function result to the span attributes. If you omit the span name, one will be generated based on the module, function, and arity. Specifying a name is helpful for `handle_info` type functions where the name/arity would be ambiguous.
 
-      @decorate trace("my_app.worker.do_work")
-      def do_work(arg1, arg2) do
-        ...doing work
-        do_more_work(arg1)
-      end
+```elixir
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
 
-      @decorate trace("MyApp::Worker::do_more_work")
-      def do_more_work(arg1) do
-        ...doing more work
-      end
-    end
+  @decorate simple_trace() # Generates span name "MyApp.Worker.do_work/2". or...
+  @decorate simple_trace("worker.do_work")
+  def do_work(arg1, arg2) do
+    ...doing work
+  end
+end
+```
 
-This decorator inserts all of code to add a span to the registered tracer into your method at compile time. In the example above, the `do_work` method would become something like this:
+The `trace` decorator allows you to specify an `includes` option which gives you more flexibility with what you can include in the span attributes. Omitting the `includes` option with `trace` means no attributes will be added to the span.
 
-    def do_work(arg1, arg2) do
-      require OpenTelemetry.Span
-      require OpenTelemetry.Tracer
+```elixir
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
 
-      parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
+  @decorate trace("worker.do_work", include: [:arg1, :arg2])
+  def do_work(arg1, arg2) do
+    ...doing work
+  end
+end
+```
 
-      OpenTelemetry.Tracer.with_span "my_app.worker.do_work", %{parent: parent_ctx} do
-        ...doing work
-        do_more_work(arg1)
-      end
-    end
+The decorator uses a macro to insert code into your function at compile time to wrap the body in a new span and link it to the currently active span. In the example above, the `do_work` method would become something like this:
 
-We use `OpenTelemetry.Tracer.current_span_ctx()` to automatically link new spans to the current trace (if it exists and is in the same process). So the above example will link the `do_work` and `do_more_work` spans for you by default. 
+```elixir
+def do_work(arg1, arg2) do
+  require OpenTelemetry.Span
+  require OpenTelemetry.Tracer
+
+  parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
+  OpenTelemetry.Tracer.with_span "my_app.worker.do_work", %{parent: parent_ctx} do
+    OpenTelemetry.Span.set_attributes(arg1: arg1, arg2: arg2)
+    ...doing work
+  end
+end
+```
 
 You can provide span attributes by specifying a list of variable names as atoms.
 
@@ -48,51 +79,43 @@ This list can include...
 
 Any variables (in the top level closure) available when the function exits:
 
-    defmodule MyApp.Math do
-      use OpenTelemetryDecorator
+```elixir
+defmodule MyApp.Math do
+  use OpenTelemetryDecorator
 
-      @decorate trace("my_app.math.add", include: [:a, :b, :sum])
-      def add(a, b) do
-        sum = a + b
-        {:ok, thing1}
-      end
-    end
-    
-    
+  @decorate trace("my_app.math.add", include: [:a, :b, :sum])
+  def add(a, b) do
+    sum = a + b
+    {:ok, thing1}
+  end
+end
+```
+
 The result of the function by including the atom `:result`:
 
-    defmodule MyApp.Math do
-      use OpenTelemetryDecorator
+```elixir
+defmodule MyApp.Math do
+  use OpenTelemetryDecorator
 
-      @decorate trace("my_app.math.add", include: [:result])
-      def add(a, b) do
-        sum = a + b
-        {:ok, thing1}
-      end
-    end
-    
-    
+  @decorate trace("my_app.math.add", include: [:result])
+  def add(a, b) do
+    sum = a + b
+    {:ok, thing1}
+  end
+end
+```
+
 Map/struct properties using nested lists of atoms:
 
-    defmodule MyApp.Worker do
-      use OpenTelemetryDecorator
-
-      @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
-      def do_work(arg1, arg2) do
-        total = arg1.count + arg2.count
-        {:ok, total}
-      end
-    end
-
-## Installation
-
-Add `open_telemetry_decorator` to your list of dependencies in `mix.exs` and do a `mix deps.get`:
-
 ```elixir
-def deps do
-  [
-    {:open_telemetry_decorator, "~> 0.3.0"}
-  ]
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
+
+  @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
+  def do_work(arg1, arg2) do
+    total = arg1.count + arg2.count
+    {:ok, total}
+  end
 end
 ```
 
