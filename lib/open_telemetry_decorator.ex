@@ -40,9 +40,9 @@ defmodule OpenTelemetryDecorator do
       require OpenTelemetry.Span
       require OpenTelemetry.Tracer
 
-      parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      span_args = SpanArgs.new(unquote(opts))
 
-      OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
+      OpenTelemetry.Tracer.with_span unquote(span_name), span_args do
         result = unquote(body)
 
         included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
@@ -72,27 +72,23 @@ defmodule OpenTelemetryDecorator do
       {:ok, total}
     end
 
-    @decorate simple_trace("worker.do_more_work")
+    @decorate simple_trace(name: "worker.do_more_work")
     def handle_call({:do_more_work, args}, _from, state) do
       {:reply, {:ok, args}, state}
     end
   end
   ```
   """
-  def simple_trace(body, context) do
-    context
-    |> SpanName.from_context()
-    |> simple_trace(body, context)
-  end
+  def simple_trace(opts \\ [], body, context) do
+    span_name = Keyword.get(opts, :name, SpanName.from_context(context))
 
-  def simple_trace(span_name, body, context) do
     quote location: :keep do
       require OpenTelemetry.Span
       require OpenTelemetry.Tracer
 
-      parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      span_args = SpanArgs.new(unquote(opts))
 
-      OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
+      OpenTelemetry.Tracer.with_span unquote(span_name), span_args do
         OpenTelemetry.Span.set_attributes(Kernel.binding())
 
         result = unquote(body)

@@ -30,7 +30,7 @@ https://github.com/opentelemetry-beam/opentelemetry_zipkin
 
 ## Usage
 
-Add `use OpenTelemetryDecorator` to the module, and decorate any methods you want to trace with `@decorate trace("span name")` or `@decorate simple_trace("span name")`.
+Add `use OpenTelemetryDecorator` to the module, and decorate any methods you want to trace with `@decorate trace("span name")` or `@decorate simple_trace(name: "span name")`.
 
 The `simple_trace` decorator will automatically add your input parameters and the function result to the span attributes. If you omit the span name, one will be generated based on the module, function, and arity. Specifying a name is helpful for `handle_info` type functions where the name/arity would be ambiguous.
 
@@ -39,7 +39,7 @@ defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
   @decorate simple_trace() # Generates span name "MyApp.Worker.do_work/2". or...
-  @decorate simple_trace("worker.do_work")
+  @decorate simple_trace(name: "worker.do_work")
   def do_work(arg1, arg2) do
     ...doing work
   end
@@ -74,6 +74,8 @@ def do_work(arg1, arg2) do
   end
 end
 ```
+
+## Specifying attributes
 
 You can provide span attributes by specifying a list of variable names as atoms.
 
@@ -119,6 +121,28 @@ defmodule MyApp.Worker do
     {:ok, total}
   end
 end
+```
+
+## Specifying a sampling strategy
+
+The usual way to specify a sampler is by configuring `open_telemetry` or your chosen exporter directly. You can set the `open_telemetry` sampler in your application config like this:
+
+```elixir
+config :opentelemetry, sampler: {:probability, %{probability: 0.5, only_rootel_spans: true}}
+```
+
+You can find the full list of samplers here: https://github.com/open-telemetry/opentelemetry-erlang/blob/master/apps/opentelemetry/src/otel_sampler.erl#L22-L26
+
+However, you may want to change your sampling strategy at runtime, for example: with a feature flag.
+
+You can provide a method in your application's config that will be evaluated to get the sampler for each span. If no function is specified, or the value is `nil`, the default sampler will be used. This function needs to return a setup sampler like `:ot_sampler.setup(:always_off, %{})`
+```elixir
+config :open_telemetry_decorator, sampler_provider: &FeatureFlags.open_telemetry_sampler/0
+```
+
+You can override this value for individual spans by providing a function as an option to the `trace` or `simple_trace` decorator.
+```elixir
+@decorate trace("less_important_thing", include: [:input, :result], sampler_provider: &FeatureFlags.low_priority_sampler/0)
 ```
 
 <!-- MDOC -->

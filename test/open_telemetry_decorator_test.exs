@@ -45,8 +45,36 @@ defmodule OpenTelemetryDecoratorTest do
       def no_include(opts), do: {:ok, opts}
     end
 
+    defmodule CustomSampler do
+      use OpenTelemetryDecorator
+
+      def always_on_sampler do
+        :ot_sampler.setup(:always_on, %{})
+      end
+
+      def always_off_sampler do
+        :ot_sampler.setup(:always_off, %{})
+      end
+
+      @decorate trace("feature_one", sampler_provider: &always_on_sampler/0)
+      def feature_one, do: :ok
+
+      @decorate trace("feature_two", sampler_provider: &always_off_sampler/0)
+      def feature_two, do: :ok
+    end
+
     test "does not modify inputs or function result" do
       assert Example.step(1) == {:ok, 1}
+    end
+
+    test "reports spans when tracing on" do
+      CustomSampler.feature_one()
+      assert_receive {:span, span(name: "feature_one")}
+    end
+
+    test "does not report spans when tracing off" do
+      CustomSampler.feature_two()
+      refute_receive {:span, _}
     end
 
     test "automatically links spans" do
@@ -117,8 +145,26 @@ defmodule OpenTelemetryDecoratorTest do
       @decorate simple_trace()
       def add(a, b), do: a + b
 
-      @decorate simple_trace("math.subtraction")
+      @decorate simple_trace(name: "math.subtraction")
       def subtract(a, b), do: a - b
+    end
+
+    defmodule SimpleCustomSampler do
+      use OpenTelemetryDecorator
+
+      def always_on_sampler do
+        :ot_sampler.setup(:always_on, %{})
+      end
+
+      def always_off_sampler do
+        :ot_sampler.setup(:always_off, %{})
+      end
+
+      @decorate simple_trace(name: "feature_one", sampler_provider: &always_on_sampler/0)
+      def feature_one, do: :ok
+
+      @decorate simple_trace(name: "feature_two", sampler_provider: &always_off_sampler/0)
+      def feature_two, do: :ok
     end
 
     test "automatically adds inputs, outputs, and generates span name" do
@@ -139,6 +185,16 @@ defmodule OpenTelemetryDecoratorTest do
                         name: "math.subtraction",
                         attributes: [a: 3, b: 2, result: 1]
                       )}
+    end
+
+    test "reports spans when tracing on" do
+      SimpleCustomSampler.feature_one()
+      assert_receive {:span, span(name: "feature_one")}
+    end
+
+    test "does not report spans when tracing off" do
+      SimpleCustomSampler.feature_two()
+      refute_receive {:span, _}
     end
   end
 
