@@ -46,6 +46,8 @@ defmodule MyApp.Worker do
 end
 ```
 
+### Span Attributes
+
 The `trace` decorator allows you to specify an `includes` option which gives you more flexibility with what you can include in the span attributes. Omitting the `includes` option with `trace` means no attributes will be added to the span.
 
 ```elixir
@@ -69,8 +71,8 @@ def do_work(arg1, arg2) do
   parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
   OpenTelemetry.Tracer.with_span "my_app.worker.do_work", %{parent: parent_ctx} do
-    OpenTelemetry.Span.set_attributes(arg1: arg1, arg2: arg2)
     ...doing work
+    OpenTelemetry.Span.set_attributes(arg1: arg1, arg2: arg2)
   end
 end
 ```
@@ -114,6 +116,24 @@ defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
   @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
+  def do_work(arg1, arg2) do
+    total = arg1.count + arg2.count
+    {:ok, total}
+  end
+end
+```
+
+### Custom Sampler
+
+You can also provide a sampler that will override the globally configured one:
+
+```elixir
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
+
+  @sampler :ot_sampler.setup(:probability, %{probability: 0.5})
+
+  @decorate trace("my_app.worker.do_work", sampler: @sampler, include: [:arg1, :arg2, :result])
   def do_work(arg1, arg2) do
     total = arg1.count + arg2.count
     {:ok, total}
