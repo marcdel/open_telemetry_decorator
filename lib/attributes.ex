@@ -34,6 +34,8 @@ defmodule Attributes do
     |> Enum.reject(&is_nil/1)
   end
 
+  defp take_nested_attr(nil, _keys), do: {:error, nil}
+
   defp take_nested_attr(obj, keys) do
     case get_in(obj, Enum.map(keys, &Access.key(&1, nil))) do
       nil -> {:error, :not_found}

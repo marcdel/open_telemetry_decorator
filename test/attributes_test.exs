@@ -48,6 +48,10 @@ defmodule AttributesTest do
       attrs = Attributes.get([], [[:obj, :id]])
       assert attrs == []
     end
+
+    test "does not add attribute if object is nil" do
+      assert Attributes.get([obj: nil], [[:obj, :id]]) == []
+    end
   end
 
   describe "maybe_add_result" do
