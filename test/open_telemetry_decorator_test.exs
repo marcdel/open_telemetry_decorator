@@ -89,7 +89,13 @@ defmodule OpenTelemetryDecoratorTest do
     test "handles handles underscored attributes" do
       Example.find(2)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert Keyword.fetch!(attrs, :even) == true
+      assert Keyword.fetch!(attrs, :even) == "true"
+    end
+
+    test "converts atoms to strings" do
+      Example.step(:two)
+      assert_receive {:span, span(name: "Example.step", attributes: attrs)}
+      assert Keyword.fetch!(attrs, :id) == "two"
     end
 
     test "does not include result unless asked for" do

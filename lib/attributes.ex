@@ -6,6 +6,7 @@ defmodule Attributes do
     |> take_attrs(reportable_attr_keys)
     |> maybe_add_result(reportable_attr_keys, result)
     |> remove_underscores()
+    |> convert_atoms_to_strings()
     |> Enum.into([])
   end
 
@@ -60,6 +61,16 @@ defmodule Attributes do
         |> String.to_atom()
 
       {key, value}
+    end)
+  end
+
+  defp convert_atoms_to_strings(attrs) do
+    Enum.map(attrs, fn {key, value} ->
+      if is_atom(value) do
+        {key, Atom.to_string(value)}
+      else
+        {key, value}
+      end
     end)
   end
 end
