@@ -112,8 +112,6 @@ defmodule OpenTelemetryDecorator do
 
       OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
 
-        require IEx; IEx.pry()
-        
         span_ctx = OpenTelemetry.Tracer.current_span_ctx
         OpenTelemetry.Span.set_attributes(span_ctx, Kernel.binding())
 
