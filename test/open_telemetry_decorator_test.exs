@@ -155,7 +155,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert_receive {:span,
                       span(
                         name: "OpenTelemetryDecoratorTest.Math.add/2",
-                        attributes: [result: 5, a: 2, b: 3, ]
+                        attributes: [result: 5, a: 2, b: 3]
                       )}
     end
 
