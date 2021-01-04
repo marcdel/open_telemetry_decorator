@@ -8,7 +8,7 @@ defmodule OpenTelemetryDecoratorTest do
   require Record
 
   # Make span methods available
-  for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/ot_span.hrl") do
+  for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/otel_span.hrl") do
     Record.defrecord(name, spec)
   end
 
@@ -118,9 +118,9 @@ defmodule OpenTelemetryDecoratorTest do
     defmodule CustomSampler do
       use OpenTelemetryDecorator
 
-      @always_on_sampler :ot_sampler.setup(:always_on, %{})
+      @always_on_sampler :otel_sampler.setup(:always_on, %{})
 
-      @always_off_sampler :ot_sampler.setup(:always_off, %{})
+      @always_off_sampler :otel_sampler.setup(:always_off, %{})
 
       @decorate trace("feature_one", sampler: @always_on_sampler)
       def feature_one, do: :ok
@@ -155,7 +155,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert_receive {:span,
                       span(
                         name: "OpenTelemetryDecoratorTest.Math.add/2",
-                        attributes: [a: 2, b: 3, result: 5]
+                        attributes: [result: 5, a: 2, b: 3]
                       )}
     end
 
@@ -165,7 +165,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert_receive {:span,
                       span(
                         name: "math.subtraction",
-                        attributes: [a: 3, b: 2, result: 1]
+                        attributes: [result: 1, a: 3, b: 2]
                       )}
     end
   end
@@ -173,15 +173,15 @@ defmodule OpenTelemetryDecoratorTest do
   def telemetry_pid_reporter(_) do
     ExUnit.CaptureLog.capture_log(fn -> :application.stop(:opentelemetry) end)
 
-    :application.set_env(:opentelemetry, :tracer, :ot_tracer_default)
+    :application.set_env(:opentelemetry, :tracer, :otel_tracer_default)
 
     :application.set_env(:opentelemetry, :processors, [
-      {:ot_batch_processor, %{scheduled_delay_ms: 1}}
+      {:otel_batch_processor, %{scheduled_delay_ms: 1}}
     ])
 
     :application.start(:opentelemetry)
 
-    :ot_batch_processor.set_exporter(:ot_exporter_pid, self())
+    :otel_batch_processor.set_exporter(:otel_exporter_pid, self())
 
     :ok
   end

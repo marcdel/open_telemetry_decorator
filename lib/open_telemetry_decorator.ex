@@ -60,11 +60,12 @@ defmodule OpenTelemetryDecorator do
       span_args = SpanArgs.new(unquote(opts))
 
       OpenTelemetry.Tracer.with_span unquote(span_name), span_args do
+        span_ctx = OpenTelemetry.Tracer.current_span_ctx()
         result = unquote(body)
 
         included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
 
-        OpenTelemetry.Span.set_attributes(included_attrs)
+        OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
 
         result
       end
@@ -110,11 +111,12 @@ defmodule OpenTelemetryDecorator do
       parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
       OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
-        OpenTelemetry.Span.set_attributes(Kernel.binding())
+        span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+        OpenTelemetry.Span.set_attributes(span_ctx, Kernel.binding())
 
         result = unquote(body)
 
-        OpenTelemetry.Span.set_attributes(result: result)
+        OpenTelemetry.Span.set_attribute(span_ctx, :result, result)
 
         result
       end
