@@ -97,6 +97,7 @@ defmodule OpenTelemetryDecorator do
   end
   ```
   """
+  @deprecated "Use trace instead"
   def simple_trace(body, context) do
     context
     |> SpanName.from_context()

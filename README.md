@@ -3,7 +3,7 @@
 [![Build status badge](https://github.com/marcdel/open_telemetry_decorator/workflows/Elixir%20CI/badge.svg)](https://github.com/marcdel/open_telemetry_decorator/actions)
 [![Hex version badge](https://img.shields.io/hexpm/v/open_telemetry_decorator.svg)](https://hex.pm/packages/open_telemetry_decorator)
 
-⚠️ Caution: the public API for this project is still evolving and is not yet stable 
+⚠️ Caution: the public API for this project is still evolving and is not yet stable
 
 <!-- MDOC -->
 <!-- INCLUDE -->
@@ -16,7 +16,7 @@ Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We inc
 ```elixir
 def deps do
   [
-    {:open_telemetry_decorator, "~> 0.5.1"},
+    {:open_telemetry_decorator, "~> 0.5.2"},
     {:opentelemetry, "~> 0.4.0"}
   ]
 end
