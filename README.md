@@ -30,16 +30,15 @@ https://github.com/opentelemetry-beam/opentelemetry_zipkin
 
 ## Usage
 
-Add `use OpenTelemetryDecorator` to the module, and decorate any methods you want to trace with `@decorate trace("span name")` or `@decorate simple_trace("span name")`.
+Add `use OpenTelemetryDecorator` to the module, and decorate any methods you want to trace with `@decorate trace("span name")`.
 
-The `simple_trace` decorator will automatically add your input parameters and the function result to the span attributes. If you omit the span name, one will be generated based on the module, function, and arity. Specifying a name is helpful for `handle_info` type functions where the name/arity would be ambiguous.
+The `trace` decorator will automatically wrap the decorated function in an opentelemetry span with the provided name.
 
 ```elixir
 defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
-  @decorate simple_trace() # Generates span name "MyApp.Worker.do_work/2". or...
-  @decorate simple_trace("worker.do_work")
+  @decorate trace("worker.do_work")
   def do_work(arg1, arg2) do
     ...doing work
   end

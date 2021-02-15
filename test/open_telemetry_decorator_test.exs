@@ -138,38 +138,6 @@ defmodule OpenTelemetryDecoratorTest do
     end
   end
 
-  describe "simple_trace" do
-    defmodule Math do
-      use OpenTelemetryDecorator
-
-      @decorate simple_trace()
-      def add(a, b), do: a + b
-
-      @decorate simple_trace("math.subtraction")
-      def subtract(a, b), do: a - b
-    end
-
-    test "automatically adds inputs, outputs, and generates span name" do
-      Math.add(2, 3)
-
-      assert_receive {:span,
-                      span(
-                        name: "OpenTelemetryDecoratorTest.Math.add/2",
-                        attributes: [result: 5, a: 2, b: 3]
-                      )}
-    end
-
-    test "span name can be specified" do
-      Math.subtract(3, 2)
-
-      assert_receive {:span,
-                      span(
-                        name: "math.subtraction",
-                        attributes: [result: 1, a: 3, b: 2]
-                      )}
-    end
-  end
-
   def telemetry_pid_reporter(_) do
     ExUnit.CaptureLog.capture_log(fn -> :application.stop(:opentelemetry) end)
 

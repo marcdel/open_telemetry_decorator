@@ -9,7 +9,7 @@ defmodule OpenTelemetryDecorator do
              # compensate for anchor id differences between ExDoc and GitHub
              |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
 
-  use Decorator.Define, trace: 1, trace: 2, simple_trace: 0, simple_trace: 1
+  use Decorator.Define, trace: 1, trace: 2
 
   @doc """
   Decorate a function to add an OpenTelemetry trace with a named span.
@@ -66,58 +66,6 @@ defmodule OpenTelemetryDecorator do
         included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
 
         OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
-
-        result
-      end
-    end
-  rescue
-    e in ArgumentError ->
-      target = "#{inspect(context.module)}.#{context.name}/#{context.arity} @decorate telemetry"
-      reraise %ArgumentError{message: "#{target} #{e.message}"}, __STACKTRACE__
-  end
-
-  @doc """
-  Decorate a function to add an OpenTelemetry trace with a named span. The input parameters and result are automatically added to the span attributes.
-  You can specify a span name or one will be generated based on the module name, function name, and arity.
-
-  ```elixir
-  defmodule MyApp.Worker do
-    use OpenTelemetryDecorator
-
-    @decorate simple_trace()
-    def do_work(arg1, arg2) do
-      total = arg1.count + arg2.count
-      {:ok, total}
-    end
-
-    @decorate simple_trace("worker.do_more_work")
-    def handle_call({:do_more_work, args}, _from, state) do
-      {:reply, {:ok, args}, state}
-    end
-  end
-  ```
-  """
-  @deprecated "Use trace instead"
-  def simple_trace(body, context) do
-    context
-    |> SpanName.from_context()
-    |> simple_trace(body, context)
-  end
-
-  def simple_trace(span_name, body, context) do
-    quote location: :keep do
-      require OpenTelemetry.Span
-      require OpenTelemetry.Tracer
-
-      parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
-
-      OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
-        span_ctx = OpenTelemetry.Tracer.current_span_ctx()
-        OpenTelemetry.Span.set_attributes(span_ctx, Kernel.binding())
-
-        result = unquote(body)
-
-        OpenTelemetry.Span.set_attribute(span_ctx, :result, result)
 
         result
       end
