@@ -60,7 +60,7 @@ defmodule OpenTelemetryDecorator do
       span_args = SpanArgs.new(unquote(opts))
 
       OpenTelemetry.Tracer.with_span unquote(span_name), span_args do
-        span_ctx = OpenTelemetry.Tracer.current_span_ctx
+        span_ctx = OpenTelemetry.Tracer.current_span_ctx()
         result = unquote(body)
 
         included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
@@ -109,8 +109,12 @@ defmodule OpenTelemetryDecorator do
       require OpenTelemetry.Tracer
 
       parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      attributes = case Logger.metadata() do
+        [request_id: value] -> [request_id: value]
+        _ -> []
+      end
 
-      OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx} do
+      OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx, attributes: attributes} do
         unquote(body)
       end
     end

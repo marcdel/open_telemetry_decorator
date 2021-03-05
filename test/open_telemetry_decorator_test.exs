@@ -149,13 +149,13 @@ defmodule OpenTelemetryDecoratorTest do
       def subtract(a, b), do: a - b
     end
 
-    test "automatically adds inputs, outputs, and generates span name" do
+    test "generates span name" do
       Math.add(2, 3)
 
       assert_receive {:span,
                       span(
                         name: "OpenTelemetryDecoratorTest.Math.add/2",
-                        attributes: [result: 5, a: 2, b: 3, ]
+                        attributes: []
                       )}
     end
 
@@ -165,7 +165,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert_receive {:span,
                       span(
                         name: "math.subtraction",
-                        attributes: [result: 1, a: 3, b: 2]
+                        attributes: []
                       )}
     end
   end
