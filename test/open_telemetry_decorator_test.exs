@@ -118,9 +118,9 @@ defmodule OpenTelemetryDecoratorTest do
     defmodule CustomSampler do
       use OpenTelemetryDecorator
 
-      @always_on_sampler :otel_sampler.setup(:always_on, %{})
+      @always_on_sampler :otel_sampler.setup(:always_on)
 
-      @always_off_sampler :otel_sampler.setup(:always_off, %{})
+      @always_off_sampler :otel_sampler.setup(:always_off)
 
       @decorate trace("feature_one", sampler: @always_on_sampler)
       def feature_one, do: :ok
