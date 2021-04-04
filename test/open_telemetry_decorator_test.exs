@@ -41,6 +41,12 @@ defmodule OpenTelemetryDecoratorTest do
         end
       end
 
+      @decorate trace("bad_result")
+      def bad_result, do: :error
+
+      @decorate trace("bad_tuple_result")
+      def bad_tuple_result, do: {:error, 1, 2, 3, 4}
+
       @decorate trace("Example.no_include")
       def no_include(opts), do: {:ok, opts}
     end
@@ -115,6 +121,18 @@ defmodule OpenTelemetryDecoratorTest do
       assert_receive {:span, span(name: "Example.no_include", attributes: [])}
     end
 
+    test "treat span simple error" do
+      Example.bad_result()
+      expected_status = OpenTelemetry.status(:Error, "Error")
+      assert_receive {:span, span(name: "bad_result", status: ^expected_status)}
+    end
+
+    test "treat span tuple error" do
+      Example.bad_tuple_result()
+      expected_status = OpenTelemetry.status(:Error, "Error")
+      assert_receive {:span, span(name: "bad_tuple_result", status: ^expected_status)}
+    end
+
     defmodule CustomSampler do
       use OpenTelemetryDecorator
 
@@ -147,6 +165,9 @@ defmodule OpenTelemetryDecoratorTest do
 
       @decorate simple_trace("math.subtraction")
       def subtract(a, b), do: a - b
+
+      @decorate simple_trace("math.bad_subtraction")
+      def bad_subtract(_a, _b), do: {:error, :bad_subtract}
     end
 
     test "generates span name" do
@@ -166,6 +187,18 @@ defmodule OpenTelemetryDecoratorTest do
                       span(
                         name: "math.subtraction",
                         attributes: []
+                      )}
+    end
+
+    test "span with error status" do
+      Math.bad_subtract(3, 2)
+
+      expected_status = OpenTelemetry.status(:Error, "Error")
+
+      assert_receive {:span,
+                      span(
+                        name: "math.bad_subtraction",
+                        status: ^expected_status
                       )}
     end
   end
