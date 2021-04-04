@@ -56,6 +56,7 @@ defmodule OpenTelemetryDecorator do
     quote location: :keep do
       require OpenTelemetry.Span
       require OpenTelemetry.Tracer
+      require OpenTelemetryDecorator
 
       span_args = SpanArgs.new(unquote(opts))
 
@@ -67,7 +68,7 @@ defmodule OpenTelemetryDecorator do
 
         OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
 
-        result
+        result |> OpenTelemetryDecorator.treat_result()
       end
     end
   rescue
@@ -107,6 +108,7 @@ defmodule OpenTelemetryDecorator do
     quote location: :keep do
       require OpenTelemetry.Span
       require OpenTelemetry.Tracer
+      require OpenTelemetryDecorator
 
       parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
       attributes = case Logger.metadata() do
@@ -115,12 +117,37 @@ defmodule OpenTelemetryDecorator do
       end
 
       OpenTelemetry.Tracer.with_span unquote(span_name), %{parent: parent_ctx, attributes: attributes} do
-        unquote(body)
+        unquote(body) |> OpenTelemetryDecorator.treat_result()
       end
     end
   rescue
     e in ArgumentError ->
       target = "#{inspect(context.module)}.#{context.name}/#{context.arity} @decorate telemetry"
       reraise %ArgumentError{message: "#{target} #{e.message}"}, __STACKTRACE__
+  end
+
+  def treat_result(result) do
+    case result do
+      :error ->
+        OpenTelemetryDecorator.add_error()
+        :error
+
+      tuple when is_tuple(tuple) ->
+        case Tuple.to_list(tuple) do
+          [:error | _tail] ->
+            OpenTelemetryDecorator.add_error()
+            tuple
+
+          _any -> tuple
+        end
+
+      any -> any
+    end
+  end
+
+  def add_error() do
+    status = OpenTelemetry.status(:Error, "Error")
+    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    OpenTelemetry.Span.set_status(span_ctx, status)
   end
 end
