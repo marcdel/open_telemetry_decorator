@@ -32,22 +32,6 @@ defmodule OpenTelemetryDecorator do
     end
   end
   ```
-
-  You can also provide a sampler that will override the globally configured one:
-
-  ```elixir
-  defmodule MyApp.Worker do
-    use OpenTelemetryDecorator
-
-    @sampler :ot_sampler.setup(:probability, %{probability: 0.5})
-
-    @decorate trace("my_app.worker.do_work", sampler: @sampler, include: [:arg1, :arg2, :result])
-    def do_work(arg1, arg2) do
-      total = arg1.count + arg2.count
-      {:ok, total}
-    end
-  end
-  ```
   """
   def trace(span_name, opts \\ [], body, context) do
     include = Keyword.get(opts, :include, [])
@@ -57,9 +41,7 @@ defmodule OpenTelemetryDecorator do
       require OpenTelemetry.Span
       require OpenTelemetry.Tracer
 
-      span_args = SpanArgs.new(unquote(opts))
-
-      OpenTelemetry.Tracer.with_span unquote(span_name), span_args do
+      OpenTelemetry.Tracer.with_span unquote(span_name) do
         span_ctx = OpenTelemetry.Tracer.current_span_ctx()
         result = unquote(body)
 
