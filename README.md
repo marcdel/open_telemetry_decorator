@@ -16,8 +16,8 @@ Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We inc
 ```elixir
 def deps do
   [
-    {:open_telemetry_decorator, "~> 0.5.3"},
-    {:opentelemetry, "~> 0.4.0"}
+    {:open_telemetry_decorator, "~> 1.0.0-rc.3"},
+    {:opentelemetry, "~> 1.0.0-rc.3"}
   ]
 end
 ```
@@ -115,24 +115,6 @@ defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
   @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
-  def do_work(arg1, arg2) do
-    total = arg1.count + arg2.count
-    {:ok, total}
-  end
-end
-```
-
-### Custom Sampler
-
-You can also provide a sampler that will override the globally configured one:
-
-```elixir
-defmodule MyApp.Worker do
-  use OpenTelemetryDecorator
-
-  @sampler :ot_sampler.setup(:probability, %{probability: 0.5})
-
-  @decorate trace("my_app.worker.do_work", sampler: @sampler, include: [:arg1, :arg2, :result])
   def do_work(arg1, arg2) do
     total = arg1.count + arg2.count
     {:ok, total}
