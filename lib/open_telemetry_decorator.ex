@@ -62,17 +62,14 @@ defmodule OpenTelemetryDecorator do
   @doc """
   Decorate a function to add an OpenTelemetry trace with a named span. The input parameters and result are automatically added to the span attributes.
   You can specify a span name or one will be generated based on the module name, function name, and arity.
-
   ```elixir
   defmodule MyApp.Worker do
     use OpenTelemetryDecorator
-
     @decorate simple_trace()
     def do_work(arg1, arg2) do
       total = arg1.count + arg2.count
       {:ok, total}
     end
-
     @decorate simple_trace("worker.do_more_work")
     def handle_call({:do_more_work, args}, _from, state) do
       {:reply, {:ok, args}, state}

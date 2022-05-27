@@ -41,12 +41,6 @@ defmodule OpenTelemetryDecoratorTest do
         end
       end
 
-      @decorate trace("bad_result")
-      def bad_result, do: :error
-
-      @decorate trace("bad_tuple_result")
-      def bad_tuple_result, do: {:error, 1, 2, 3, 4}
-
       @decorate trace("Example.no_include")
       def no_include(opts), do: {:ok, opts}
     end
@@ -119,18 +113,6 @@ defmodule OpenTelemetryDecoratorTest do
     test "does not include anything unless specified" do
       Example.no_include(include_me: "nope")
       assert_receive {:span, span(name: "Example.no_include", attributes: [])}
-    end
-
-    test "treat span simple error" do
-      Example.bad_result()
-      expected_status = OpenTelemetry.status(:Error, "Error")
-      assert_receive {:span, span(name: "bad_result", status: ^expected_status)}
-    end
-
-    test "treat span tuple error" do
-      Example.bad_tuple_result()
-      expected_status = OpenTelemetry.status(:Error, "Error")
-      assert_receive {:span, span(name: "bad_tuple_result", status: ^expected_status)}
     end
   end
 
