@@ -132,28 +132,6 @@ defmodule OpenTelemetryDecoratorTest do
       expected_status = OpenTelemetry.status(:Error, "Error")
       assert_receive {:span, span(name: "bad_tuple_result", status: ^expected_status)}
     end
-
-    defmodule CustomSampler do
-      use OpenTelemetryDecorator
-
-      @always_on_sampler :otel_sampler.setup(:always_on, %{})
-
-      @always_off_sampler :otel_sampler.setup(:always_off, %{})
-
-      @decorate trace("feature_one", sampler: @always_on_sampler)
-      def feature_one, do: :ok
-
-      @decorate trace("feature_two", sampler: @always_off_sampler)
-      def feature_two, do: :ok
-    end
-
-    test "can override the default sampler for individual spans" do
-      CustomSampler.feature_one()
-      assert_receive {:span, span(name: "feature_one")}
-
-      CustomSampler.feature_two()
-      refute_receive {:span, _}
-    end
   end
 
   describe "simple_trace" do
