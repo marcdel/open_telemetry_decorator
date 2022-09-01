@@ -38,7 +38,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       {:excoveralls, "~> 0.14.0", only: :test, runtime: false},
       {:opentelemetry, "~> 1.0.0-rc.3", only: :test},
       {:opentelemetry_api, "~> 1.0.0-rc.3"},
-      {:opentelemetry_exporter, "~> 1.0.0-rc.3", only: :test}
+      {:opentelemetry_exporter, "~> 1.1.0", only: :test}
     ]
   end
 
