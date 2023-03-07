@@ -14,6 +14,13 @@ defmodule OpenTelemetryDecoratorTest do
 
   setup [:telemetry_pid_reporter]
 
+  def get_span_attributes(attributes) do
+    # https://github.com/open-telemetry/opentelemetry-erlang/blob/main/apps/opentelemetry/src/otel_attributes.erl#L26-L31
+    # e.g. {:attributes, 128, :infinity, 0, %{count: 2}}
+    {:attributes, _, :infinity, _, attr} = attributes
+    attr
+  end
+
   describe "trace" do
     defmodule Example do
       use OpenTelemetryDecorator
@@ -56,63 +63,70 @@ defmodule OpenTelemetryDecoratorTest do
                       span(
                         name: "Example.workflow",
                         trace_id: parent_trace_id,
-                        attributes: [result: [ok: 1, ok: 2], count: 2]
+                        attributes: attrs
                       )}
+
+      assert %{count: 2} = get_span_attributes(attrs)
 
       assert_receive {:span,
                       span(
                         name: "Example.step",
                         trace_id: ^parent_trace_id,
-                        attributes: [result: {:ok, 1}, id: 1]
+                        attributes: attrs
                       )}
+
+      assert %{id: 1} = get_span_attributes(attrs)
 
       assert_receive {:span,
                       span(
                         name: "Example.step",
                         trace_id: ^parent_trace_id,
-                        attributes: [result: {:ok, 2}, id: 2]
+                        attributes: attrs
                       )}
+
+      assert %{id: 2} = get_span_attributes(attrs)
     end
 
     test "handles simple attributes" do
       Example.find(1)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert Keyword.fetch!(attrs, :id) == 1
+      assert %{id: 1} = get_span_attributes(attrs)
     end
 
     test "handles nested attributes" do
       Example.find(1)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert Keyword.fetch!(attrs, :user_name) == "my user"
+      assert %{user_name: "my user"} = get_span_attributes(attrs)
     end
 
     test "handles handles underscored attributes" do
       Example.find(2)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert Keyword.fetch!(attrs, :even) == "true"
+      assert %{even: "true"} = get_span_attributes(attrs)
     end
 
     test "converts atoms to strings" do
       Example.step(:two)
       assert_receive {:span, span(name: "Example.step", attributes: attrs)}
-      assert Keyword.fetch!(attrs, :id) == "two"
+      assert %{id: "two"} = get_span_attributes(attrs)
     end
 
     test "does not include result unless asked for" do
       Example.numbers(1000)
       assert_receive {:span, span(name: "Example.numbers", attributes: attrs)}
-      assert Keyword.has_key?(attrs, :result) == false
+      assert Map.has_key?(get_span_attributes(attrs), :result) == false
     end
 
     test "does not include variables not in scope when the function exists" do
       Example.find(098)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert Keyword.has_key?(attrs, :error) == false
+      assert Map.has_key?(get_span_attributes(attrs), :error) == false
     end
 
     test "does not include anything unless specified" do
       Example.no_include(include_me: "nope")
-      assert_receive {:span, span(name: "Example.no_include", attributes: [])}
+      assert_receive {:span, span(name: "Example.no_include", attributes: attrs)}
+      assert %{} == get_span_attributes(attrs)
     end
   end
 
