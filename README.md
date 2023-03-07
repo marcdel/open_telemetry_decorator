@@ -16,8 +16,8 @@ Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We inc
 ```elixir
 def deps do
   [
-    {:open_telemetry_decorator, "~> 1.0.0-rc.3"},
-    {:opentelemetry, "~> 1.0.0-rc.3"}
+    {:open_telemetry_decorator, "~> 1.2.0"},
+    {:opentelemetry, "~> 1.2.0"}
   ]
 end
 ```
