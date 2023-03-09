@@ -1,4 +1,4 @@
-defmodule Attributes do
+defmodule OpenTelemetryDecorator.Attributes do
   @moduledoc false
 
   def get(bound_variables, reportable_attr_keys, result \\ nil) do

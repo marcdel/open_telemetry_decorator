@@ -1,5 +1,7 @@
-defmodule AttributesTest do
+defmodule OpenTelemetryDecorator.AttributesTest do
   use ExUnit.Case, async: true
+
+  alias OpenTelemetryDecorator.Attributes
 
   describe "take_attrs" do
     test "handles flat attributes" do

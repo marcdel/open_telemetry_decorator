@@ -11,6 +11,9 @@ defmodule OpenTelemetryDecorator do
 
   use Decorator.Define, trace: 1, trace: 2
 
+  alias OpenTelemetryDecorator.Validator
+  alias OpenTelemetryDecorator.Attributes
+
   @doc """
   Decorate a function to add an OpenTelemetry trace with a named span.
 

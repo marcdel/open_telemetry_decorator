@@ -1,4 +1,4 @@
-defmodule SpanName do
+defmodule OpenTelemetryDecorator.SpanName do
   @moduledoc false
 
   def from_context(%{module: m, name: f, arity: a}), do: "#{trim(m)}.#{f}/#{a}"

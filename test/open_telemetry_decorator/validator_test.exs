@@ -1,5 +1,7 @@
-defmodule ValidatorTest do
+defmodule OpenTelemetryDecorator.ValidatorTest do
   use ExUnit.Case, async: true
+
+  alias OpenTelemetryDecorator.Validator
 
   describe "validate_args" do
     test "event name must be a non-empty string" do
