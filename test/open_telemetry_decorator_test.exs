@@ -59,7 +59,7 @@ defmodule OpenTelemetryDecoratorTest do
       def no_include(opts), do: {:ok, opts}
 
       @decorate trace("Example.with_exception")
-      def with_exception(), do: raise(RuntimeError, "bad times")
+      def with_exception, do: raise(RuntimeError, "bad times")
     end
 
     test "does not modify inputs or function result" do
