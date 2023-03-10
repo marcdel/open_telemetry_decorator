@@ -7,6 +7,7 @@ defmodule OpenTelemetryDecorator.Attributes do
     |> maybe_add_result(reportable_attr_keys, result)
     |> remove_underscores()
     |> convert_atoms_to_strings()
+    |> prefix_attr_names()
     |> Enum.into([])
   end
 
@@ -71,6 +72,20 @@ defmodule OpenTelemetryDecorator.Attributes do
       else
         {key, value}
       end
+    end)
+  end
+
+  defp prefix_attr_names(attrs) do
+    prefix = Application.get_env(:open_telemetry_decorator, :attr_prefix)
+    do_prefix_attr_names(attrs, prefix)
+  end
+
+  defp do_prefix_attr_names(attrs, nil), do: attrs
+  defp do_prefix_attr_names(attrs, ""), do: attrs
+
+  defp do_prefix_attr_names(attrs, prefix) do
+    Enum.map(attrs, fn {key, value} ->
+      {String.to_atom(prefix <> Atom.to_string(key)), value}
     end)
   end
 end
