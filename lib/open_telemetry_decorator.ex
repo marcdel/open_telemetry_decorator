@@ -46,13 +46,20 @@ defmodule OpenTelemetryDecorator do
 
       OpenTelemetry.Tracer.with_span unquote(span_name) do
         span_ctx = OpenTelemetry.Tracer.current_span_ctx()
-        result = unquote(body)
 
-        included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
+        try do
+          result = unquote(body)
 
-        OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
+          included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
+          OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
 
-        result
+          result
+        rescue
+          e ->
+            OpenTelemetry.Span.record_exception(span_ctx, e)
+            OpenTelemetry.Span.set_status(span_ctx, :error)
+            raise(e)
+        end
       end
     end
   rescue

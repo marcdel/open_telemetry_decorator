@@ -21,6 +21,13 @@ defmodule OpenTelemetryDecoratorTest do
     attr
   end
 
+  def get_span_events(events) do
+    # https://github.com/open-telemetry/opentelemetry-erlang/blob/main/apps/opentelemetry/src/otel_attributes.erl#L26-L31
+    # e.g. {:events, 128, 128, :infinity, 0, []}
+    {:events, _, _, :infinity, _, event_list} = events
+    event_list
+  end
+
   describe "trace" do
     defmodule Example do
       use OpenTelemetryDecorator
@@ -50,6 +57,9 @@ defmodule OpenTelemetryDecoratorTest do
 
       @decorate trace("Example.no_include")
       def no_include(opts), do: {:ok, opts}
+
+      @decorate trace("Example.with_exception")
+      def with_exception(), do: raise(RuntimeError, "bad times")
     end
 
     test "does not modify inputs or function result" do
@@ -127,6 +137,29 @@ defmodule OpenTelemetryDecoratorTest do
       Example.no_include(include_me: "nope")
       assert_receive {:span, span(name: "Example.no_include", attributes: attrs)}
       assert %{} == get_span_attributes(attrs)
+    end
+
+    test "records an exception event" do
+      try do
+        Example.with_exception()
+      rescue
+        _ in RuntimeError ->
+          assert_receive {:span, span(name: "Example.with_exception", events: events)}
+          assert [{:event, _, "exception", _}] = get_span_events(events)
+      end
+    end
+
+    # The assumption here is that if an exception bubbles up
+    # outside of the current span, we can consider it "unhandled"
+    # and set the status to error.
+    test "sets the status of the span to error" do
+      try do
+        Example.with_exception()
+      rescue
+        _ in RuntimeError ->
+          assert_receive {:span, span(name: "Example.with_exception", status: status)}
+          assert {:status, :error, ""} = status
+      end
     end
   end
 
