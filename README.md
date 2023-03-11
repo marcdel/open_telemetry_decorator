@@ -142,6 +142,13 @@ defmodule MyApp.Worker do
 end
 ```
 
+### Prefixing Span Attributes
+Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically putting manual instrumentation under `app.`
+
+In order to do this, you'll configure the `attr_prefix` option in `config/config.exs`
+```elixir
+config :open_telemetry_decorator, attr_prefix: "app."
+```
 <!-- MDOC -->
 
 ## Development
