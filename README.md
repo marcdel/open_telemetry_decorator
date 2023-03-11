@@ -16,17 +16,37 @@ Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We inc
 ```elixir
 def deps do
   [
-    {:open_telemetry_decorator, "~> 1.2.2"},
-    {:opentelemetry, "~> 1.2"}
+    {:opentelemetry, "~> 1.2"},
+    {:opentelemetry_exporter, "~> 1.4"},
+    {:open_telemetry_decorator, "~> 1.2.2"}
   ]
 end
 ```
 
 Then follow the directions for the exporter of your choice to send traces to to zipkin, honeycomb, etc.
+https://github.com/open-telemetry/opentelemetry-erlang/tree/main/apps/opentelemetry_zipkin
 
-https://github.com/garthk/opentelemetry_honeycomb
+### Honeycomb Example
 
-https://github.com/opentelemetry-beam/opentelemetry_zipkin
+`config/runtime.exs`
+```elixir
+api_key = Map.fetch!(System.get_env(), "HONEYCOMB_KEY")
+
+config :opentelemetry, :processors,
+  otel_batch_processor: %{
+    exporter:
+      {:opentelemetry_exporter,
+       %{
+         protocol: :grpc,
+         headers: [
+           {'x-honeycomb-team', api_key},
+           {'x-honeycomb-dataset', 'YOUR_APP_NAME'}
+         ],
+         endpoints: [{:https, 'api.honeycomb.io', 443, []}]
+       }}
+  }
+
+```
 
 ## Usage
 
