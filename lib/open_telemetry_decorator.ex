@@ -57,7 +57,7 @@ defmodule OpenTelemetryDecorator do
         rescue
           e ->
             OpenTelemetry.Span.record_exception(span_ctx, e)
-            OpenTelemetry.Span.set_status(span_ctx, :error)
+            OpenTelemetry.Span.set_status(span_ctx, OpenTelemetry.status(:error))
             raise(e)
         end
       end
