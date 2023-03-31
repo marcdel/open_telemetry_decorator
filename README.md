@@ -3,8 +3,6 @@
 [![Build status badge](https://github.com/marcdel/open_telemetry_decorator/workflows/Elixir%20CI/badge.svg)](https://github.com/marcdel/open_telemetry_decorator/actions)
 [![Hex version badge](https://img.shields.io/hexpm/v/open_telemetry_decorator.svg)](https://hex.pm/packages/open_telemetry_decorator)
 
-⚠️ Caution: the public API for this project is still evolving and is not yet stable
-
 <!-- MDOC -->
 <!-- INCLUDE -->
 A function decorator for OpenTelemetry traces.
@@ -18,7 +16,7 @@ def deps do
   [
     {:opentelemetry, "~> 1.2"},
     {:opentelemetry_exporter, "~> 1.4"},
-    {:open_telemetry_decorator, "~> 1.2.3"}
+    {:open_telemetry_decorator, "~> 1.2"}
   ]
 end
 ```
@@ -149,6 +147,16 @@ In order to do this, you'll configure the `attr_prefix` option in `config/config
 ```elixir
 config :open_telemetry_decorator, attr_prefix: "app."
 ```
+
+### Changing the join character for nested attributes
+By default, nested attributes are joined with an underscore. However, when you have an object with underscores and a property with underscores, this can be hard to visually parse. For example, `my_struct.other_struct.field`, would be exported as `my_struct_other_struct_field`.
+
+To override this, you'll configure the `attr_joiner` option in `config/config.exs`. The default value will likely change from `_` to `.` in a future version.
+```elixir
+config :open_telemetry_decorator, attr_joiner: "."
+```
+
+Thanks to @benregn for the examples and inspiration for these two options!
 <!-- MDOC -->
 
 ## Development

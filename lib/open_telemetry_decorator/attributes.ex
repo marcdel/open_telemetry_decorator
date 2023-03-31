@@ -21,9 +21,11 @@ defmodule OpenTelemetryDecorator.Attributes do
   end
 
   defp take_nested_attrs(bound_variables, nested_keys) do
+    joiner = Application.get_env(:open_telemetry_decorator, :attr_joiner) || "_"
+
     nested_keys
     |> Enum.map(fn key_list ->
-      key = key_list |> Enum.join("_") |> String.to_atom()
+      key = key_list |> Enum.join(joiner) |> String.to_atom()
       {obj_key, other_keys} = List.pop_at(key_list, 0)
 
       with {:ok, obj} <- Keyword.fetch(bound_variables, obj_key),
