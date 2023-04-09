@@ -73,7 +73,7 @@ defmodule MyApp.Worker do
 
   @decorate trace("worker.do_work", include: [:arg1, :arg2])
   def do_work(arg1, arg2) do
-    ...doing work
+    # ...doing work
   end
 end
 ```
@@ -81,17 +81,17 @@ end
 The decorator uses a macro to insert code into your function at compile time to wrap the body in a new span and link it to the currently active span. In the example above, the `do_work` method would become something like this:
 
 ```elixir
-def do_work(arg1, arg2) do
-  require OpenTelemetry.Span
-  require OpenTelemetry.Tracer
+defmodule MyApp.Worker do
+  require OpenTelemetry.Tracer, as: Tracer
 
-  parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
-
-  OpenTelemetry.Tracer.with_span "my_app.worker.do_work", %{parent: parent_ctx} do
-    ...doing work
-    OpenTelemetry.Span.set_attributes(arg1: arg1, arg2: arg2)
+  def do_work(arg1, arg2) do
+    OpenTelemetry.Tracer.with_span "my_app.worker.do_work" do
+      # ...doing work
+      Tracer.set_attributes(arg1: arg1, arg2: arg2)
+    end
   end
 end
+
 ```
 
 You can provide span attributes by specifying a list of variable names as atoms.
@@ -107,7 +107,7 @@ defmodule MyApp.Math do
   @decorate trace("my_app.math.add", include: [:a, :b, :sum])
   def add(a, b) do
     sum = a + b
-    {:ok, thing1}
+    {:ok, sum}
   end
 end
 ```
@@ -120,8 +120,7 @@ defmodule MyApp.Math do
 
   @decorate trace("my_app.math.add", include: [:result])
   def add(a, b) do
-    sum = a + b
-    {:ok, thing1}
+    {:ok, a + b}
   end
 end
 ```
@@ -134,7 +133,7 @@ defmodule MyApp.Worker do
 
   @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
   def do_work(arg1, arg2) do
-    total = arg1.count + arg2.count
+    total = some_calculation(arg1.count, arg2.count)
     {:ok, total}
   end
 end
