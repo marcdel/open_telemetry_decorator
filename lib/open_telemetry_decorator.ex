@@ -58,7 +58,7 @@ defmodule OpenTelemetryDecorator do
           e ->
             OpenTelemetry.Span.record_exception(span_ctx, e)
             OpenTelemetry.Span.set_status(span_ctx, OpenTelemetry.status(:error))
-            raise(e)
+            reraise e, __STACKTRACE__
         end
       end
     end

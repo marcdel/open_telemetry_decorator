@@ -59,7 +59,7 @@ defmodule OpenTelemetryDecoratorTest do
       def no_include(opts), do: {:ok, opts}
 
       @decorate trace("Example.with_exception")
-      def with_exception, do: raise(RuntimeError, "bad times")
+      def with_exception, do: File.read!("fake file")
     end
 
     test "does not modify inputs or function result" do
@@ -142,8 +142,10 @@ defmodule OpenTelemetryDecoratorTest do
     test "records an exception event" do
       try do
         Example.with_exception()
+        flunk("Should have re-raised the exception")
       rescue
-        _ in RuntimeError ->
+        e ->
+          assert Exception.format(:error, e, __STACKTRACE__) =~ "File.read!/1"
           assert_receive {:span, span(name: "Example.with_exception", events: events)}
           assert [{:event, _, "exception", _}] = get_span_events(events)
       end
@@ -156,7 +158,7 @@ defmodule OpenTelemetryDecoratorTest do
       try do
         Example.with_exception()
       rescue
-        _ in RuntimeError ->
+        _ ->
           assert_receive {:span, span(name: "Example.with_exception", status: status)}
           assert {:status, :error, ""} = status
       end
