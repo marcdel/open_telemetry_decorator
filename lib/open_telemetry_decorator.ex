@@ -11,6 +11,9 @@ defmodule OpenTelemetryDecorator do
 
   use Decorator.Define, trace: 1, trace: 2
 
+  alias OpenTelemetryDecorator.Attributes
+  alias OpenTelemetryDecorator.Validator
+
   @doc """
   Decorate a function to add an OpenTelemetry trace with a named span.
 
@@ -43,13 +46,20 @@ defmodule OpenTelemetryDecorator do
 
       OpenTelemetry.Tracer.with_span unquote(span_name) do
         span_ctx = OpenTelemetry.Tracer.current_span_ctx()
-        result = unquote(body)
 
-        included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
+        try do
+          result = unquote(body)
 
-        OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
+          included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
+          OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
 
-        result
+          result
+        rescue
+          e ->
+            OpenTelemetry.Span.record_exception(span_ctx, e)
+            OpenTelemetry.Span.set_status(span_ctx, OpenTelemetry.status(:error))
+            reraise e, __STACKTRACE__
+        end
       end
     end
   rescue

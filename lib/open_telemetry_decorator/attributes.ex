@@ -1,4 +1,4 @@
-defmodule Attributes do
+defmodule OpenTelemetryDecorator.Attributes do
   @moduledoc false
 
   def get(bound_variables, reportable_attr_keys, result \\ nil) do
@@ -7,6 +7,7 @@ defmodule Attributes do
     |> maybe_add_result(reportable_attr_keys, result)
     |> remove_underscores()
     |> convert_atoms_to_strings()
+    |> prefix_attr_names()
     |> Enum.into([])
   end
 
@@ -20,9 +21,11 @@ defmodule Attributes do
   end
 
   defp take_nested_attrs(bound_variables, nested_keys) do
+    joiner = Application.get_env(:open_telemetry_decorator, :attr_joiner) || "_"
+
     nested_keys
     |> Enum.map(fn key_list ->
-      key = key_list |> Enum.join("_") |> String.to_atom()
+      key = key_list |> Enum.join(joiner) |> String.to_atom()
       {obj_key, other_keys} = List.pop_at(key_list, 0)
 
       with {:ok, obj} <- Keyword.fetch(bound_variables, obj_key),
@@ -71,6 +74,20 @@ defmodule Attributes do
       else
         {key, value}
       end
+    end)
+  end
+
+  defp prefix_attr_names(attrs) do
+    prefix = Application.get_env(:open_telemetry_decorator, :attr_prefix)
+    do_prefix_attr_names(attrs, prefix)
+  end
+
+  defp do_prefix_attr_names(attrs, nil), do: attrs
+  defp do_prefix_attr_names(attrs, ""), do: attrs
+
+  defp do_prefix_attr_names(attrs, prefix) do
+    Enum.map(attrs, fn {key, value} ->
+      {String.to_atom(prefix <> Atom.to_string(key)), value}
     end)
   end
 end

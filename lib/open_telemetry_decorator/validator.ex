@@ -1,4 +1,4 @@
-defmodule Validator do
+defmodule OpenTelemetryDecorator.Validator do
   @moduledoc false
 
   def validate_args(span_name, attr_keys) do

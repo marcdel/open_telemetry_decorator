@@ -13,7 +13,7 @@ TEST := $(shell find test -name \*.ex)
 
 check: _build/dev _build/test
 	mix test
-	mix credo
+	mix credo --strict
 	mix dialyzer
 	mix docs
 	mix format

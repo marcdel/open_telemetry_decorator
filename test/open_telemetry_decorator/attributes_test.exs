@@ -1,5 +1,7 @@
-defmodule AttributesTest do
+defmodule OpenTelemetryDecorator.AttributesTest do
   use ExUnit.Case, async: true
+
+  alias OpenTelemetryDecorator.Attributes
 
   describe "take_attrs" do
     test "handles flat attributes" do
@@ -54,6 +56,18 @@ defmodule AttributesTest do
     end
   end
 
+  describe "overriding nested attrs join character" do
+    setup do
+      prev = Application.get_env(:open_telemetry_decorator, :attr_joiner)
+      Application.put_env(:open_telemetry_decorator, :attr_joiner, ".")
+      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_joiner, prev) end)
+    end
+
+    test "when joiner is configured, joins nested attributes with the joiner character" do
+      assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == ["obj.id": 1]
+    end
+  end
+
   describe "maybe_add_result" do
     test "when :result is given, adds result to the list" do
       attrs = Attributes.get([], [:result], {:ok, "include me"})
@@ -91,6 +105,30 @@ defmodule AttributesTest do
                  id: 1,
                  name: "asd"
                ]
+    end
+  end
+
+  describe "maybe_prefix with prefix that can be converted to an atom" do
+    setup do
+      prev = Application.get_env(:open_telemetry_decorator, :attr_prefix)
+      Application.put_env(:open_telemetry_decorator, :attr_prefix, "my_")
+      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_prefix, prev) end)
+    end
+
+    test "when prefix is configured, prefixes attribute names" do
+      assert Attributes.get([id: 1], [:id]) == [my_id: 1]
+    end
+  end
+
+  describe "maybe_prefix with prefix that cannot be converted to an atom" do
+    setup do
+      prev = Application.get_env(:open_telemetry_decorator, :attr_prefix)
+      Application.put_env(:open_telemetry_decorator, :attr_prefix, "my.")
+      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_prefix, prev) end)
+    end
+
+    test "when prefix is configured, prefixes attribute names" do
+      assert Attributes.get([id: 1], [:id]) == ["my.id": 1]
     end
   end
 end

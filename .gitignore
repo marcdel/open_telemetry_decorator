@@ -22,3 +22,6 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 open_telemetry_decorator-*.tar
 
+# Intellij nonsense
+.idea/
+*.iml

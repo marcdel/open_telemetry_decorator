@@ -3,8 +3,6 @@
 [![Build status badge](https://github.com/marcdel/open_telemetry_decorator/workflows/Elixir%20CI/badge.svg)](https://github.com/marcdel/open_telemetry_decorator/actions)
 [![Hex version badge](https://img.shields.io/hexpm/v/open_telemetry_decorator.svg)](https://hex.pm/packages/open_telemetry_decorator)
 
-⚠️ Caution: the public API for this project is still evolving and is not yet stable
-
 <!-- MDOC -->
 <!-- INCLUDE -->
 A function decorator for OpenTelemetry traces.
@@ -16,17 +14,37 @@ Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We inc
 ```elixir
 def deps do
   [
-    {:open_telemetry_decorator, "~> 1.0.0-rc.3"},
-    {:opentelemetry, "~> 1.0.0-rc.3"}
+    {:opentelemetry, "~> 1.2"},
+    {:opentelemetry_exporter, "~> 1.4"},
+    {:open_telemetry_decorator, "~> 1.2"}
   ]
 end
 ```
 
 Then follow the directions for the exporter of your choice to send traces to to zipkin, honeycomb, etc.
+https://github.com/open-telemetry/opentelemetry-erlang/tree/main/apps/opentelemetry_zipkin
 
-https://github.com/garthk/opentelemetry_honeycomb
+### Honeycomb Example
 
-https://github.com/opentelemetry-beam/opentelemetry_zipkin
+`config/runtime.exs`
+```elixir
+api_key = Map.fetch!(System.get_env(), "HONEYCOMB_KEY")
+
+config :opentelemetry, :processors,
+  otel_batch_processor: %{
+    exporter:
+      {:opentelemetry_exporter,
+       %{
+         protocol: :grpc,
+         headers: [
+           {'x-honeycomb-team', api_key},
+           {'x-honeycomb-dataset', 'YOUR_APP_NAME'}
+         ],
+         endpoints: [{:https, 'api.honeycomb.io', 443, []}]
+       }}
+  }
+
+```
 
 ## Usage
 
@@ -55,7 +73,7 @@ defmodule MyApp.Worker do
 
   @decorate trace("worker.do_work", include: [:arg1, :arg2])
   def do_work(arg1, arg2) do
-    ...doing work
+    # ...doing work
   end
 end
 ```
@@ -63,17 +81,17 @@ end
 The decorator uses a macro to insert code into your function at compile time to wrap the body in a new span and link it to the currently active span. In the example above, the `do_work` method would become something like this:
 
 ```elixir
-def do_work(arg1, arg2) do
-  require OpenTelemetry.Span
-  require OpenTelemetry.Tracer
+defmodule MyApp.Worker do
+  require OpenTelemetry.Tracer, as: Tracer
 
-  parent_ctx = OpenTelemetry.Tracer.current_span_ctx()
-
-  OpenTelemetry.Tracer.with_span "my_app.worker.do_work", %{parent: parent_ctx} do
-    ...doing work
-    OpenTelemetry.Span.set_attributes(arg1: arg1, arg2: arg2)
+  def do_work(arg1, arg2) do
+    OpenTelemetry.Tracer.with_span "my_app.worker.do_work" do
+      # ...doing work
+      Tracer.set_attributes(arg1: arg1, arg2: arg2)
+    end
   end
 end
+
 ```
 
 You can provide span attributes by specifying a list of variable names as atoms.
@@ -89,7 +107,7 @@ defmodule MyApp.Math do
   @decorate trace("my_app.math.add", include: [:a, :b, :sum])
   def add(a, b) do
     sum = a + b
-    {:ok, thing1}
+    {:ok, sum}
   end
 end
 ```
@@ -102,8 +120,7 @@ defmodule MyApp.Math do
 
   @decorate trace("my_app.math.add", include: [:result])
   def add(a, b) do
-    sum = a + b
-    {:ok, thing1}
+    {:ok, a + b}
   end
 end
 ```
@@ -116,12 +133,29 @@ defmodule MyApp.Worker do
 
   @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
   def do_work(arg1, arg2) do
-    total = arg1.count + arg2.count
+    total = some_calculation(arg1.count, arg2.count)
     {:ok, total}
   end
 end
 ```
 
+### Prefixing Span Attributes
+Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically putting manual instrumentation under `app.`
+
+In order to do this, you'll configure the `attr_prefix` option in `config/config.exs`
+```elixir
+config :open_telemetry_decorator, attr_prefix: "app."
+```
+
+### Changing the join character for nested attributes
+By default, nested attributes are joined with an underscore. However, when you have an object with underscores and a property with underscores, this can be hard to visually parse. For example, `my_struct.other_struct.field`, would be exported as `my_struct_other_struct_field`.
+
+To override this, you'll configure the `attr_joiner` option in `config/config.exs`. The default value will likely change from `_` to `.` in a future version.
+```elixir
+config :open_telemetry_decorator, attr_joiner: "."
+```
+
+Thanks to @benregn for the examples and inspiration for these two options!
 <!-- MDOC -->
 
 ## Development
