@@ -44,7 +44,10 @@ defmodule OpenTelemetryDecorator do
       require OpenTelemetry.Tracer, as: Tracer
 
       OpenTelemetry.Tracer.with_span unquote(span_name) do
-        input_params = Attributes.get(Kernel.binding(), unquote(include))
+        input_params =
+          Kernel.binding()
+          |> Attributes.get(unquote(include))
+          |> Keyword.delete(:result)
 
         try do
           result = unquote(body)

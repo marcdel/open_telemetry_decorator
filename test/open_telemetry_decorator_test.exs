@@ -149,6 +149,21 @@ defmodule OpenTelemetryDecoratorTest do
       assert Map.get(get_span_attributes(attrs), :x) == 1
     end
 
+    test "overwrites the default result value" do
+      defmodule ExampleResult do
+        use OpenTelemetryDecorator
+
+        @decorate trace("ExampleResult.add", include: [:a, :b, :result])
+        def add(a, b) do
+          a + b
+        end
+      end
+
+      ExampleResult.add(5, 5)
+      assert_receive {:span, span(name: "ExampleResult.add", attributes: attrs)}
+      assert Map.get(get_span_attributes(attrs), :result) == 10
+    end
+
     test "does not include anything unless specified" do
       Example.no_include(include_me: "nope")
       assert_receive {:span, span(name: "Example.no_include", attributes: attrs)}
