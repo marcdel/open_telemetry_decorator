@@ -6,11 +6,9 @@ defmodule OpenTelemetryDecoratorTest do
   require OpenTelemetry.Span
 
   require Record
-
-  # Make span methods available
-  for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/otel_span.hrl") do
-    Record.defrecord(name, spec)
-  end
+  # Allows pattern matching on spans via
+  @fields Record.extract(:span, from_lib: "opentelemetry/include/otel_span.hrl")
+  Record.defrecordp(:span, @fields)
 
   setup [:telemetry_pid_reporter]
 
@@ -131,6 +129,24 @@ defmodule OpenTelemetryDecoratorTest do
       Example.find(098)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
       assert Map.has_key?(get_span_attributes(attrs), :error) == false
+    end
+
+    test "does not overwrite input parameters" do
+      defmodule OverwriteExample do
+        use OpenTelemetryDecorator
+
+        @decorate trace("param_override", include: [:x, :y])
+        def param_override(x, y) do
+          x = x + 1
+
+          {:ok, x + y}
+        end
+      end
+
+      assert {:ok, 3} = OverwriteExample.param_override(1, 1)
+
+      assert_receive {:span, span(name: "param_override", attributes: attrs)}
+      assert Map.get(get_span_attributes(attrs), :x) == 1
     end
 
     test "does not include anything unless specified" do
