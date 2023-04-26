@@ -49,7 +49,7 @@ defmodule OpenTelemetryDecorator.Attributes do
 
   defp maybe_add_result(attrs, attr_keys, result) do
     if Enum.member?(attr_keys, :result) do
-      Keyword.put_new(attrs, :result, result)
+      Keyword.put_new(attrs, :result, inspect(result))
     else
       attrs
     end
