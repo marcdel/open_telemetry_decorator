@@ -9,9 +9,7 @@ defmodule OpenTelemetryDecorator.AttributesTest do
     end
 
     test "handles nested attributes" do
-      assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == [
-               obj_id: 1
-             ]
+      assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == [obj_id: 1]
     end
 
     test "handles flat and nested attributes" do
@@ -21,12 +19,12 @@ defmodule OpenTelemetryDecorator.AttributesTest do
           [:obj, :id]
         ])
 
-      assert attrs == [obj_id: 1, error: "whoops"]
+      assert attrs == [error: "whoops", obj_id: 1]
     end
 
     test "can take the top level element and a nested attribute" do
       attrs = Attributes.get([obj: %{id: 1}], [:obj, [:obj, :id]])
-      assert attrs == [obj_id: 1, obj: %{id: 1}]
+      assert attrs == [obj: "%{id: 1}", obj_id: 1]
     end
 
     test "handles multiply nested attributes" do
@@ -71,11 +69,11 @@ defmodule OpenTelemetryDecorator.AttributesTest do
   describe "maybe_add_result" do
     test "when :result is given, adds result to the list" do
       attrs = Attributes.get([], [:result], {:ok, "include me"})
-      assert attrs == [result: {:ok, "include me"}]
+      assert attrs == [result: "{:ok, \"include me\"}"]
 
       attrs = Attributes.get([id: 10], [:result, :id], {:ok, "include me"})
 
-      assert attrs == [result: {:ok, "include me"}, id: 10]
+      assert attrs == [id: 10, result: "{:ok, \"include me\"}"]
     end
 
     test "when :result is missing, does not add result to the list" do

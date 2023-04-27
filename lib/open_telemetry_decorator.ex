@@ -50,13 +50,14 @@ defmodule OpenTelemetryDecorator do
         try do
           result = unquote(body)
 
-          included_attrs = OpenTelemetryDecorator.Attributes.get(Kernel.binding(), unquote(include), result)
+          included_attrs =
+            OpenTelemetryDecorator.Attributes.get(Kernel.binding(), unquote(include), result)
+
           OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
 
           result
         rescue
           e ->
-            IO.inspect(e, option: :pretty, label: "e - #{__ENV__.file}:#{__ENV__.line}")
             OpenTelemetry.Span.record_exception(span_ctx, e)
             OpenTelemetry.Span.set_status(span_ctx, OpenTelemetry.status(:error))
             reraise e, __STACKTRACE__
