@@ -139,6 +139,19 @@ defmodule MyApp.Worker do
 end
 ```
 
+The map/struct properties of the result of the function:
+
+```elixir
+defmodule MyApp.Math do
+  use OpenTelemetryDecorator
+
+  @decorate trace("my_app.math.add", include: [[:result, :sum]])
+  def add(a, b) do
+    %{sum: a + b}
+  end
+end
+```
+
 ### Prefixing Span Attributes
 Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically putting manual instrumentation under `app.`
 
