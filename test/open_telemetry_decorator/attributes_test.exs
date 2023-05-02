@@ -70,19 +70,19 @@ defmodule OpenTelemetryDecorator.AttributesTest do
 
   describe "maybe_add_result" do
     test "when :result is given, adds result to the list" do
-      attrs = Attributes.get([], [:result], {:ok, "include me"})
+      attrs = Attributes.get([result: {:ok, "include me"}], [:result])
       assert attrs == [result: {:ok, "include me"}]
 
-      attrs = Attributes.get([id: 10], [:result, :id], {:ok, "include me"})
+      attrs = Attributes.get([result: {:ok, "include me"}, id: 10], [:result, :id])
 
       assert attrs == [result: {:ok, "include me"}, id: 10]
     end
 
     test "when :result is missing, does not add result to the list" do
-      attrs = Attributes.get([], [], {:ok, "include me"})
+      attrs = Attributes.get([result: {:ok, "include me"}], [])
       assert attrs == []
 
-      attrs = Attributes.get([name: "blah"], [:name], {:ok, "include me"})
+      attrs = Attributes.get([result: {:ok, "include me"}, name: "blah"], [:name])
 
       assert attrs == [name: "blah"]
     end

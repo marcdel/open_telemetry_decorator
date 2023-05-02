@@ -43,7 +43,7 @@ defmodule OpenTelemetryDecorator do
     quote location: :keep do
       require OpenTelemetry.Tracer, as: Tracer
 
-      OpenTelemetry.Tracer.with_span unquote(span_name) do
+      Tracer.with_span unquote(span_name) do
         input_params =
           Kernel.binding()
           |> Attributes.get(unquote(include))
@@ -53,7 +53,8 @@ defmodule OpenTelemetryDecorator do
           result = unquote(body)
 
           Kernel.binding()
-          |> Attributes.get(unquote(include), result)
+          |> Keyword.put(:result, result)
+          |> Attributes.get(unquote(include))
           |> Keyword.merge(input_params)
           |> Tracer.set_attributes()
 

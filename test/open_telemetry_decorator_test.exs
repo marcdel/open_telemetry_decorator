@@ -164,6 +164,21 @@ defmodule OpenTelemetryDecoratorTest do
       assert Map.get(get_span_attributes(attrs), :result) == 10
     end
 
+    test "supports nested results" do
+      defmodule NestedResult do
+        use OpenTelemetryDecorator
+
+        @decorate trace("ExampleResult.make_struct", include: [:a, :b, [:result, :sum]])
+        def make_struct(a, b) do
+          %{sum: a + b}
+        end
+      end
+
+      NestedResult.make_struct(5, 5)
+      assert_receive {:span, span(name: "ExampleResult.make_struct", attributes: attrs)}
+      assert Map.get(get_span_attributes(attrs), :result_sum) == 10
+    end
+
     test "does not include anything unless specified" do
       Example.no_include(include_me: "nope")
       assert_receive {:span, span(name: "Example.no_include", attributes: attrs)}

@@ -1,10 +1,9 @@
 defmodule OpenTelemetryDecorator.Attributes do
   @moduledoc false
 
-  def get(bound_variables, reportable_attr_keys, result \\ nil) do
+  def get(bound_variables, reportable_attr_keys) do
     bound_variables
     |> take_attrs(reportable_attr_keys)
-    |> maybe_add_result(reportable_attr_keys, result)
     |> remove_underscores()
     |> convert_atoms_to_strings()
     |> prefix_attr_names()
@@ -44,14 +43,6 @@ defmodule OpenTelemetryDecorator.Attributes do
     case get_in(obj, Enum.map(keys, &Access.key(&1, nil))) do
       nil -> {:error, :not_found}
       value -> {:ok, value}
-    end
-  end
-
-  defp maybe_add_result(attrs, attr_keys, result) do
-    if Enum.member?(attr_keys, :result) do
-      Keyword.put_new(attrs, :result, result)
-    else
-      attrs
     end
   end
 
