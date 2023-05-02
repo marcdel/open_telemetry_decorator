@@ -41,23 +41,28 @@ defmodule OpenTelemetryDecorator do
     Validator.validate_args(span_name, include)
 
     quote location: :keep do
-      require OpenTelemetry.Span
-      require OpenTelemetry.Tracer
+      require OpenTelemetry.Tracer, as: Tracer
 
-      OpenTelemetry.Tracer.with_span unquote(span_name) do
-        span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      Tracer.with_span unquote(span_name) do
+        input_params =
+          Kernel.binding()
+          |> Attributes.get(unquote(include))
+          |> Keyword.delete(:result)
 
         try do
           result = unquote(body)
 
-          included_attrs = Attributes.get(Kernel.binding(), unquote(include), result)
-          OpenTelemetry.Span.set_attributes(span_ctx, included_attrs)
+          Kernel.binding()
+          |> Keyword.put(:result, result)
+          |> Attributes.get(unquote(include))
+          |> Keyword.merge(input_params)
+          |> Tracer.set_attributes()
 
           result
         rescue
           e ->
-            OpenTelemetry.Span.record_exception(span_ctx, e)
-            OpenTelemetry.Span.set_status(span_ctx, OpenTelemetry.status(:error))
+            Tracer.record_exception(e)
+            Tracer.set_status(OpenTelemetry.status(:error))
             reraise e, __STACKTRACE__
         end
       end

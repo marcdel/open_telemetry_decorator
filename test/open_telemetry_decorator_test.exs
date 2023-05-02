@@ -6,11 +6,9 @@ defmodule OpenTelemetryDecoratorTest do
   require OpenTelemetry.Span
 
   require Record
-
-  # Make span methods available
-  for {name, spec} <- Record.extract_all(from_lib: "opentelemetry/include/otel_span.hrl") do
-    Record.defrecord(name, spec)
-  end
+  # Allows pattern matching on spans via
+  @fields Record.extract(:span, from_lib: "opentelemetry/include/otel_span.hrl")
+  Record.defrecordp(:span, @fields)
 
   setup [:telemetry_pid_reporter]
 
@@ -131,6 +129,54 @@ defmodule OpenTelemetryDecoratorTest do
       Example.find(098)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
       assert Map.has_key?(get_span_attributes(attrs), :error) == false
+    end
+
+    test "does not overwrite input parameters" do
+      defmodule OverwriteExample do
+        use OpenTelemetryDecorator
+
+        @decorate trace("param_override", include: [:x, :y])
+        def param_override(x, y) do
+          x = x + 1
+
+          {:ok, x + y}
+        end
+      end
+
+      assert {:ok, 3} = OverwriteExample.param_override(1, 1)
+
+      assert_receive {:span, span(name: "param_override", attributes: attrs)}
+      assert Map.get(get_span_attributes(attrs), :x) == 1
+    end
+
+    test "overwrites the default result value" do
+      defmodule ExampleResult do
+        use OpenTelemetryDecorator
+
+        @decorate trace("ExampleResult.add", include: [:a, :b, :result])
+        def add(a, b) do
+          a + b
+        end
+      end
+
+      ExampleResult.add(5, 5)
+      assert_receive {:span, span(name: "ExampleResult.add", attributes: attrs)}
+      assert Map.get(get_span_attributes(attrs), :result) == 10
+    end
+
+    test "supports nested results" do
+      defmodule NestedResult do
+        use OpenTelemetryDecorator
+
+        @decorate trace("ExampleResult.make_struct", include: [:a, :b, [:result, :sum]])
+        def make_struct(a, b) do
+          %{sum: a + b}
+        end
+      end
+
+      NestedResult.make_struct(5, 5)
+      assert_receive {:span, span(name: "ExampleResult.make_struct", attributes: attrs)}
+      assert Map.get(get_span_attributes(attrs), :result_sum) == 10
     end
 
     test "does not include anything unless specified" do
