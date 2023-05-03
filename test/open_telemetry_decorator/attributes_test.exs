@@ -9,24 +9,45 @@ defmodule OpenTelemetryDecorator.AttributesTest do
     end
 
     test "handles nested attributes" do
-      assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == [
-               obj_id: 1
-             ]
+      assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == [obj_id: 1]
     end
 
     test "handles flat and nested attributes" do
-      attrs =
-        Attributes.get([error: "whoops", obj: %{id: 1}], [
-          :error,
-          [:obj, :id]
-        ])
+      attrs = Attributes.get([error: "whoops", obj: %{id: 1}], [:error, [:obj, :id]])
 
-      assert attrs == [obj_id: 1, error: "whoops"]
+      assert attrs == [{:error, "whoops"}, {:obj_id, 1}]
     end
 
-    test "can take the top level element and a nested attribute" do
+    test "handles nested reference into :result" do
+      assert Attributes.get([obj: %{id: 1}, result: %{a: "b"}], [[:result, :a]]) == [result_a: "b"]
+    end
+
+    test "handles nested access into string-key maps" do
+      assert Attributes.get([obj: %{"id" => 1}, result: %{"a" => "b"}], [[:obj, "id"], [:result, "a"]]) ==
+               [{:obj_id, 1}, {:result_a, "b"}]
+    end
+
+    test "when target value is valid OTLP type, use it" do
+      assert [{:val, 42.42}] == Attributes.get([val: 42.42], [:val])
+      assert [{:val, true}] == Attributes.get([val: true], [:val])
+      assert [{:val, 42}] == Attributes.get([val: 42], [:val])
+      assert [{:val, "a string"}] == Attributes.get([val: "a string"], [:val])
+    end
+
+    test "when target value is falsy, don't return (OTLP doesn't save these attributes)" do
+      assert [] == Attributes.get([val: false], [:val])
+      assert [] == Attributes.get([val: nil], [:val])
+    end
+
+    test "when target value is NOT a valid OTLP type, fall back to `inspect`" do
+      assert [{:val, ":atom"}] == Attributes.get([val: :atom], [:val])
+      assert [{:obj, "%{id: 1}"}, {:obj_id, 1}] == Attributes.get([obj: %{id: 1}], [:obj, [:obj, :id]])
+      assert [{:result, "%{id: 1}"}, {:result_id, 1}] == Attributes.get([result: %{id: 1}], [:result, [:result, :id]])
+    end
+
+    test "can take the top level element and a nested attribute, using `inspect` for non-valid values" do
       attrs = Attributes.get([obj: %{id: 1}], [:obj, [:obj, :id]])
-      assert attrs == [obj_id: 1, obj: %{id: 1}]
+      assert attrs == [{:obj, "%{id: 1}"}, {:obj_id, 1}]
     end
 
     test "handles multiply nested attributes" do
@@ -71,11 +92,11 @@ defmodule OpenTelemetryDecorator.AttributesTest do
   describe "maybe_add_result" do
     test "when :result is given, adds result to the list" do
       attrs = Attributes.get([result: {:ok, "include me"}], [:result])
-      assert attrs == [result: {:ok, "include me"}]
+      assert attrs == [result: "{:ok, \"include me\"}"]
 
       attrs = Attributes.get([result: {:ok, "include me"}, id: 10], [:result, :id])
 
-      assert attrs == [result: {:ok, "include me"}, id: 10]
+      assert attrs == [{:id, 10}, {:result, "{:ok, \"include me\"}"}]
     end
 
     test "when :result is missing, does not add result to the list" do
