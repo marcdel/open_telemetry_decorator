@@ -16,7 +16,7 @@ def deps do
   [
     {:opentelemetry, "~> 1.2"},
     {:opentelemetry_exporter, "~> 1.4"},
-    {:open_telemetry_decorator, "~> 1.3"}
+    {:open_telemetry_decorator, "~> 1.4"}
   ]
 end
 ```
@@ -135,6 +135,18 @@ defmodule MyApp.Worker do
   def do_work(arg1, arg2) do
     total = some_calculation(arg1.count, arg2.count)
     {:ok, total}
+  end
+end
+```
+
+```elixir
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
+
+  @decorate trace("my_app.worker.do_work", include: [[:calc, "sum"], [:calc, "product"]])
+  def do_work(obj) do
+    calc = %{"sum" => 10, "product" => 25}
+    {:ok, calc}
   end
 end
 ```
