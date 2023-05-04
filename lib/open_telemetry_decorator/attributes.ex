@@ -1,47 +1,67 @@
 defmodule OpenTelemetryDecorator.Attributes do
   @moduledoc false
 
-  def get(bound_variables, requested_attributes) do
-    prefix = Application.get_env(:open_telemetry_decorator, :attr_prefix) || ""
-
-    requested_attributes
-    |> Enum.reduce(%{}, fn path, attributes ->
-      case get_bound_var(bound_variables, path) do
-        {path, value} ->
-          Map.put(attributes, String.to_atom(prefix <> as_string(path)), as_string(value))
-
-        _ ->
-          attributes
+  def get(all_attributes, requested_attributes) do
+    Enum.reduce(requested_attributes, [], fn requested_attribute, taken_attributes ->
+      case get_attribute(all_attributes, requested_attribute) do
+        {name, value} -> Keyword.put(taken_attributes, name, value)
+        _ -> taken_attributes
       end
     end)
-    |> Enum.into([])
   end
 
-  defp get_bound_var(bound_vars, [head | rest]) when is_atom(head) do
-    var =
-      case Keyword.get(bound_vars, head) do
-        var when is_struct(var) -> Map.from_struct(var)
-        var -> var
-      end
+  defp get_attribute(attributes, [attribute_name | nested_keys]) do
+    requested_obj = attributes |> Keyword.get(attribute_name) |> as_map()
 
-    if value = get_in(var, rest) do
-      joiner = Application.get_env(:open_telemetry_decorator, :attr_joiner) || "_"
-
-      path = [remove_underscore(head) | rest]
-      {Enum.join(path, joiner), value}
+    if value = get_in(requested_obj, nested_keys) do
+      {derived_name([attribute_name | nested_keys]), to_otlp_value(value)}
     end
   end
 
-  defp get_bound_var(bound_vars, target) when is_atom(target) do
-    if var = Keyword.get(bound_vars, target), do: {remove_underscore(target), var}
+  defp get_attribute(attributes, attribute_name) do
+    if value = Keyword.get(attributes, attribute_name) do
+      {derived_name(attribute_name), to_otlp_value(value)}
+    end
   end
 
-  defp as_string(term) when is_binary(term) or is_integer(term) or is_boolean(term) or is_float(term), do: term
-  defp as_string(term), do: inspect(term)
+  defp derived_name([attribute_name | nested_keys]) do
+    [remove_underscore(attribute_name) | nested_keys]
+    |> composite_name()
+    |> prefix_name()
+  end
 
-  defp remove_underscore(head) when is_atom(head),
-    do: head |> Atom.to_string() |> remove_underscore()
+  defp derived_name(attribute_name) do
+    attribute_name
+    |> remove_underscore()
+    |> prefix_name()
+  end
 
-  defp remove_underscore("_" <> head), do: head
-  defp remove_underscore(head), do: head
+  defp composite_name(keys) do
+    joiner = Application.get_env(:open_telemetry_decorator, :attr_joiner) || "_"
+    Enum.join(keys, joiner)
+  end
+
+  defp prefix_name(name) when is_atom(name), do: prefix_name(Atom.to_string(name))
+
+  defp prefix_name(name) when is_binary(name) do
+    prefix = Application.get_env(:open_telemetry_decorator, :attr_prefix) || ""
+    String.to_atom(prefix <> name)
+  end
+
+  defp remove_underscore(name) when is_atom(name) do
+    name |> Atom.to_string() |> remove_underscore()
+  end
+
+  defp remove_underscore("_" <> name), do: name
+  defp remove_underscore(name), do: name
+
+  defp as_map(obj) when is_struct(obj), do: Map.from_struct(obj)
+  defp as_map(obj) when is_map(obj), do: obj
+  defp as_map(_), do: %{}
+
+  defguard is_otlp_value(value)
+           when is_binary(value) or is_integer(value) or is_boolean(value) or is_float(value)
+
+  defp to_otlp_value(value) when is_otlp_value(value), do: value
+  defp to_otlp_value(value), do: inspect(value)
 end
