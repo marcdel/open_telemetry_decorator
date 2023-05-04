@@ -4,6 +4,12 @@ defmodule OpenTelemetryDecorator.AttributesTest do
   alias OpenTelemetryDecorator.Attributes
 
   describe "take_attrs" do
+    setup do
+      prev = Application.get_env(:open_telemetry_decorator, :attr_joiner)
+      Application.put_env(:open_telemetry_decorator, :attr_joiner, "_")
+      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_joiner, prev) end)
+    end
+
     test "handles flat attributes" do
       assert Attributes.get([id: 1], [:id]) == [id: 1]
     end

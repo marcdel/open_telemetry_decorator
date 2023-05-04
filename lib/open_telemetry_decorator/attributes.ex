@@ -37,7 +37,7 @@ defmodule OpenTelemetryDecorator.Attributes do
   end
 
   defp composite_name(keys) do
-    joiner = Application.get_env(:open_telemetry_decorator, :attr_joiner) || "_"
+    joiner = Application.get_env(:open_telemetry_decorator, :attr_joiner) || "."
     Enum.join(keys, joiner)
   end
 

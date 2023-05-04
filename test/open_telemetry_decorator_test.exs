@@ -27,6 +27,12 @@ defmodule OpenTelemetryDecoratorTest do
   end
 
   describe "trace" do
+    setup do
+      prev = Application.get_env(:open_telemetry_decorator, :attr_joiner)
+      Application.put_env(:open_telemetry_decorator, :attr_joiner, "_")
+      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_joiner, prev) end)
+    end
+
     defmodule Example do
       use OpenTelemetryDecorator
 
