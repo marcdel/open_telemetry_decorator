@@ -1,9 +1,83 @@
 defmodule OpenTelemetryDecorator.AttributesTest do
   use ExUnit.Case, async: true
+  use OtelHelper
 
   alias OpenTelemetryDecorator.Attributes
 
-  describe "take_attrs" do
+  setup [:otel_pid_reporter]
+
+  describe "set" do
+    test "sets unchanged otlp attributes on the current span" do
+      Tracer.with_span "important_stuff" do
+        Attributes.set(:beep, "boop")
+        Attributes.set(:count, 12)
+        Attributes.set(:maths, 1.2)
+        Attributes.set(:failed, true)
+      end
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+    end
+
+    test "can take a keyword list" do
+      Tracer.with_span "important_stuff" do
+        Attributes.set(beep: "boop", count: 12, maths: 1.2, failed: true)
+      end
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+    end
+
+    test "can take a map" do
+      Tracer.with_span "important_stuff" do
+        Attributes.set(%{beep: "boop", count: 12, maths: 1.2, failed: true})
+      end
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+    end
+
+    test "can take a struct" do
+      defmodule ImportantStuff do
+        defstruct [:beep, :count, :maths, :failed]
+      end
+
+      Tracer.with_span "important_stuff" do
+        Attributes.set(%{beep: "boop", count: 12, maths: 1.2, failed: true})
+      end
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+    end
+
+    test "inspect()s non-otlp attributes before setting them on the current span" do
+      Tracer.with_span "whaaaat" do
+        Attributes.set(:result, {:error, "too sick bro"})
+        Attributes.set(:color, :pink)
+        Attributes.set(:numbers, [1, 2, 3, 4])
+        Attributes.set(:object, %{id: 1})
+        Attributes.set(:params, %{"id" => 1})
+      end
+
+      expected = %{
+        result: "{:error, \"too sick bro\"}",
+        color: ":pink",
+        numbers: "[1, 2, 3, 4]",
+        object: "%{id: 1}",
+        params: "%{\"id\" => 1}"
+      }
+
+      assert_receive {:span, span(name: "whaaaat", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == expected
+    end
+  end
+
+  describe "get" do
     setup do
       prev = Application.get_env(:open_telemetry_decorator, :attr_joiner)
       Application.put_env(:open_telemetry_decorator, :attr_joiner, "_")
@@ -95,21 +169,7 @@ defmodule OpenTelemetryDecorator.AttributesTest do
     test "does not add attribute if object is nil" do
       assert Attributes.get([obj: nil], [[:obj, :id]]) == []
     end
-  end
 
-  describe "overriding nested attrs join character" do
-    setup do
-      prev = Application.get_env(:open_telemetry_decorator, :attr_joiner)
-      Application.put_env(:open_telemetry_decorator, :attr_joiner, ".")
-      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_joiner, prev) end)
-    end
-
-    test "when joiner is configured, joins nested attributes with the joiner character" do
-      assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == ["obj.id": 1]
-    end
-  end
-
-  describe "maybe_add_result" do
     test "when :result is given, adds result to the list" do
       attrs = Attributes.get([result: {:ok, "include me"}], [:result])
       assert attrs == [result: "{:ok, \"include me\"}"]
@@ -127,10 +187,8 @@ defmodule OpenTelemetryDecorator.AttributesTest do
 
       assert attrs == [name: "blah"]
     end
-  end
 
-  describe "remove_underscores" do
-    test "removes underscores from keys" do
+    test "removes leading underscores from keys" do
       assert Attributes.get([_id: 1], [:_id]) == [id: 1]
 
       attrs = Attributes.get([_id: 1, _name: "asd"], [:_id, :_name])
@@ -140,6 +198,18 @@ defmodule OpenTelemetryDecorator.AttributesTest do
     test "doesn't modify keys without underscores" do
       attrs = Attributes.get([_id: 1, name: "asd"], [:_id, :name])
       assert attrs == [name: "asd", id: 1]
+    end
+  end
+
+  describe "overriding nested attrs join character" do
+    setup do
+      prev = Application.get_env(:open_telemetry_decorator, :attr_joiner)
+      Application.put_env(:open_telemetry_decorator, :attr_joiner, ".")
+      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_joiner, prev) end)
+    end
+
+    test "when joiner is configured, joins nested attributes with the joiner character" do
+      assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == ["obj.id": 1]
     end
   end
 

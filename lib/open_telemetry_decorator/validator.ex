@@ -3,7 +3,7 @@ defmodule OpenTelemetryDecorator.Validator do
 
   def validate_args(span_name, attr_keys) do
     if not (is_binary(span_name) and span_name != "") do
-      raise(ArgumentError, "span_name must be a non-empty string")
+      raise(ArgumentError, "span_name: #{inspect(span_name)} must be a non-empty string")
     end
 
     if not (is_list(attr_keys) and singular_atom_or_list_starts_with_atom?(attr_keys)) do

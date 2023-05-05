@@ -12,6 +12,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       description: "A function decorator for OpenTelemetry traces",
       homepage_url: @github_page,
       elixir: "~> 1.10",
+      elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.json": :test],
       start_permanent: Mix.env() == :prod,
@@ -28,6 +29,10 @@ defmodule OpenTelemetryDecorator.MixProject do
     ]
   end
 
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
@@ -37,6 +42,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       {:ex_doc, "~> 0.29.4", only: :dev, runtime: false},
       {:excoveralls, "~> 0.16.0", only: :test, runtime: false},
       {:opentelemetry_api, "~> 1.2"},
+      {:opentelemetry, "~> 1.3", only: :test},
       {:opentelemetry_exporter, "~> 1.4", only: :test}
     ]
   end
