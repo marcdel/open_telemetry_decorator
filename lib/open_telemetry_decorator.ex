@@ -42,8 +42,11 @@ defmodule OpenTelemetryDecorator do
 
     quote location: :keep do
       require OpenTelemetry.Tracer, as: Tracer
+      require OpenTelemetry.Span, as: Span
 
       Tracer.with_span unquote(span_name) do
+        span_context = Tracer.current_span_ctx()
+
         input_params =
           Kernel.binding()
           |> Attributes.get(unquote(include))
@@ -52,11 +55,14 @@ defmodule OpenTelemetryDecorator do
         try do
           result = unquote(body)
 
-          Kernel.binding()
-          |> Keyword.put(:result, result)
-          |> Attributes.get(unquote(include))
-          |> Keyword.merge(input_params)
-          |> Tracer.set_attributes()
+          attrs =
+            Kernel.binding()
+            |> Keyword.put(:result, result)
+            |> Attributes.get(unquote(include))
+            |> Keyword.merge(input_params)
+
+          # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
+          Span.set_attributes(span_context, attrs)
 
           result
         rescue
