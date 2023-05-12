@@ -22,11 +22,17 @@ defmodule OpenTelemetryDecorator.ValidatorTest do
       Validator.validate_args("event", [])
     end
 
-    test "attrs_keys must be atoms" do
+    test "first reference in attrs_keys must be atom" do
       Validator.validate_args("event", [:variable])
+      Validator.validate_args("event", [:variable, [:key1, :key2]])
+      Validator.validate_args("event", [:variable, [:key1, "key2"]])
 
       assert_raise ArgumentError, ~r/^attr_keys/, fn ->
         Validator.validate_args("event", ["variable"])
+      end
+
+      assert_raise ArgumentError, ~r/^attr_keys/, fn ->
+        Validator.validate_args("event", [["variable", :key]])
       end
     end
 

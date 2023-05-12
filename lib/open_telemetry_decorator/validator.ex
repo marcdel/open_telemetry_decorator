@@ -6,18 +6,16 @@ defmodule OpenTelemetryDecorator.Validator do
       raise(ArgumentError, "span_name must be a non-empty string")
     end
 
-    if not (is_list(attr_keys) and atoms_or_lists_of_atoms_only?(attr_keys)) do
-      raise(ArgumentError, "attr_keys must be a list of atoms, including nested lists of atoms")
+    if not (is_list(attr_keys) and singular_atom_or_list_starts_with_atom?(attr_keys)) do
+      raise(ArgumentError, "attr_keys must be a list of (atom | [atom | list])")
     end
   end
 
-  defp atoms_or_lists_of_atoms_only?(list) when is_list(list) do
-    Enum.all?(list, fn item ->
-      (is_list(item) && atoms_or_lists_of_atoms_only?(item)) or is_atom(item)
+  defp singular_atom_or_list_starts_with_atom?(list) do
+    Enum.all?(list, fn
+      item when is_atom(item) -> true
+      [item | _rest] when is_atom(item) -> true
+      _ -> false
     end)
-  end
-
-  defp atoms_or_lists_of_atoms_only?(item) when is_atom(item) do
-    true
   end
 end
