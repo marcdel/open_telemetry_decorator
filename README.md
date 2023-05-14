@@ -98,7 +98,8 @@ You can provide span attributes by specifying a list of variable names as atoms.
 
 This list can include...
 
-Any variables (in the top level closure) available when the function exits:
+Any variables (in the top level closure) available when the function exits.
+Note that variables declared as part of a `with` block are in a separate scope so NOT available for `include` attributes
 
 ```elixir
 defmodule MyApp.Math do
