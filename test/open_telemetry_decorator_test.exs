@@ -39,6 +39,13 @@ defmodule OpenTelemetryDecoratorTest do
         end
       end
 
+      @decorate trace("Example.parse_params", include: [[:params, "id"]])
+      def parse_params(params) do
+        %{"id" => id} = params
+
+        id
+      end
+
       @decorate trace("Example.no_include")
       def no_include(opts), do: {:ok, opts}
 
@@ -91,6 +98,12 @@ defmodule OpenTelemetryDecoratorTest do
       Example.find(1)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
       assert %{user_name: "my user"} = get_span_attributes(attrs)
+    end
+
+    test "handles maps with string keys" do
+      Example.parse_params(%{"id" => 12})
+      assert_receive {:span, span(name: "Example.parse_params", attributes: attrs)}
+      assert %{params_id: 12} = get_span_attributes(attrs)
     end
 
     test "handles handles underscored attributes" do
