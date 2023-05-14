@@ -65,7 +65,7 @@ end
 
 ### Span Attributes
 
-The `trace` decorator allows you to specify an `includes` option which gives you more flexibility with what you can include in the span attributes. Omitting the `includes` option with `trace` means no attributes will be added to the span.
+The `trace` decorator allows you to specify an `include` option which gives you more flexibility with what you can include in the span attributes. Omitting the `includes` option with `trace` means no attributes will be added to the span by the decorator.
 
 ```elixir
 defmodule MyApp.Worker do
@@ -78,6 +78,22 @@ defmodule MyApp.Worker do
 end
 ```
 
+The Attributes module includes a helper for setting additional attributes outside of the `include` option. Attributes added in either a `set` call or in the `include` that are not [primitive OTLP values](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/common/README.md#attribute) will be converted to strings with `Kernel.inspect/1`.
+
+```elixir
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
+  alias OpenTelemetryDecorator.Attributes
+
+  @decorate trace("worker.do_work")
+  def do_work(arg1, arg2) do
+    Attributes.set(arg1: arg1, arg2: arg2)
+    # ...doing work
+    Attributes.set(:output, "something")
+  end
+end
+```
+
 The decorator uses a macro to insert code into your function at compile time to wrap the body in a new span and link it to the currently active span. In the example above, the `do_work` method would become something like this:
 
 ```elixir
@@ -85,14 +101,34 @@ defmodule MyApp.Worker do
   require OpenTelemetry.Tracer, as: Tracer
 
   def do_work(arg1, arg2) do
-    OpenTelemetry.Tracer.with_span "my_app.worker.do_work" do
+    Tracer.with_span "my_app.worker.do_work" do
       # ...doing work
       Tracer.set_attributes(arg1: arg1, arg2: arg2)
     end
   end
 end
-
 ```
+
+### Prefixing Span Attributes
+Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically putting manual instrumentation under `app.`
+
+In order to do this, you'll configure the `attr_prefix` option in `config/config.exs`
+```elixir
+config :open_telemetry_decorator, attr_prefix: "app."
+```
+
+### Changing the join character for nested attributes
+By default, nested attributes are joined with an underscore. However, when you have an object with underscores and a property with underscores, this can be hard to visually parse. For example, `my_struct.other_struct.field`, would be exported as `my_struct_other_struct_field`.
+
+To override this, you'll configure the `attr_joiner` option in `config/config.exs`. The default value will likely change from `_` to `.` in a future version.
+```elixir
+config :open_telemetry_decorator, attr_joiner: "."
+```
+
+Thanks to @benregn for the examples and inspiration for these two options!
+<!-- MDOC -->
+
+### Additional Examples
 
 You can provide span attributes by specifying a list of variable names as atoms.
 
@@ -164,25 +200,6 @@ defmodule MyApp.Math do
   end
 end
 ```
-
-### Prefixing Span Attributes
-Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically putting manual instrumentation under `app.`
-
-In order to do this, you'll configure the `attr_prefix` option in `config/config.exs`
-```elixir
-config :open_telemetry_decorator, attr_prefix: "app."
-```
-
-### Changing the join character for nested attributes
-By default, nested attributes are joined with an underscore. However, when you have an object with underscores and a property with underscores, this can be hard to visually parse. For example, `my_struct.other_struct.field`, would be exported as `my_struct_other_struct_field`.
-
-To override this, you'll configure the `attr_joiner` option in `config/config.exs`. The default value will likely change from `_` to `.` in a future version.
-```elixir
-config :open_telemetry_decorator, attr_joiner: "."
-```
-
-Thanks to @benregn for the examples and inspiration for these two options!
-<!-- MDOC -->
 
 ## Development
 
