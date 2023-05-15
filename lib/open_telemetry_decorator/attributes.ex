@@ -24,9 +24,24 @@ defmodule OpenTelemetryDecorator.Attributes do
   defp get_attribute(attributes, [attribute_name | nested_keys]) do
     requested_obj = attributes |> Keyword.get(attribute_name) |> as_map()
 
-    if value = get_in(requested_obj, nested_keys) do
+    if value = recursive_get_in(requested_obj, nested_keys) do
       {derived_name([attribute_name | nested_keys]), to_otlp_value(value)}
     end
+  end
+
+  defp recursive_get_in(obj, []), do: obj
+
+  defp recursive_get_in(obj, [key | nested_keys]) do
+    value =
+      case get_in(obj, [key]) do
+        value when is_struct(value) ->
+          Map.from_struct(value)
+
+        value ->
+          value
+      end
+
+    recursive_get_in(value, nested_keys)
   end
 
   defp get_attribute(attributes, attribute_name) do

@@ -92,6 +92,14 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == [obj_id: 1]
     end
 
+    test "handles nested structs" do
+      obj_with_struct = %{born_on: Date.new!(2000, 1, 1)}
+
+      assert Attributes.get([obj: obj_with_struct], [[:obj, :born_on, :year]]) == [
+               obj_born_on_year: 2000
+             ]
+    end
+
     test "handles flat and nested attributes" do
       attrs = Attributes.get([error: "whoops", obj: %{id: 1}], [:error, [:obj, :id]])
       assert attrs == [{:obj_id, 1}, {:error, "whoops"}]
