@@ -6,6 +6,10 @@ defmodule OpenTelemetryDecorator.Attributes do
     Tracer.set_attribute(name, to_otlp_value(value))
   end
 
+  def set(attributes) when is_struct(attributes) do
+    set(Map.from_struct(attributes))
+  end
+
   def set(attributes) do
     attributes
     |> Enum.map(fn {key, value} -> {key, to_otlp_value(value)} end)

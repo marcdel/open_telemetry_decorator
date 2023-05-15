@@ -6,6 +6,10 @@ defmodule OpenTelemetryDecorator.AttributesTest do
 
   setup [:otel_pid_reporter]
 
+  defmodule SomeStruct do
+    defstruct [:beep, :count, :maths, :failed]
+  end
+
   describe "set" do
     test "sets unchanged otlp attributes on the current span" do
       Tracer.with_span "important_stuff" do
@@ -41,12 +45,8 @@ defmodule OpenTelemetryDecorator.AttributesTest do
     end
 
     test "can take a struct" do
-      defmodule ImportantStuff do
-        defstruct [:beep, :count, :maths, :failed]
-      end
-
       Tracer.with_span "important_stuff" do
-        Attributes.set(%{beep: "boop", count: 12, maths: 1.2, failed: true})
+        Attributes.set(%SomeStruct{beep: "boop", count: 12, maths: 1.2, failed: true})
       end
 
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
