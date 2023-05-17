@@ -11,19 +11,18 @@ defmodule OtelHelper do
       Record.defrecordp(:span, @fields)
 
       def otel_pid_reporter(_) do
-        ExUnit.CaptureLog.capture_log(fn -> :application.stop(:opentelemetry) end)
+        Application.load(:opentelemetry)
 
-        :application.set_env(:opentelemetry, :tracer, :otel_tracer_default)
-
-        :application.set_env(:opentelemetry, :processors, [
-          {:otel_batch_processor, %{scheduled_delay_ms: 1}}
+        Application.put_env(:opentelemetry, :processors, [
+          {:otel_simple_processor, %{exporter: {:otel_exporter_pid, self()}}}
         ])
 
-        :application.start(:opentelemetry)
+        {:ok, _} = Application.ensure_all_started(:opentelemetry)
 
-        :otel_batch_processor.set_exporter(:otel_exporter_pid, self())
-
-        :ok
+        on_exit(fn ->
+          Application.stop(:opentelemetry)
+          Application.unload(:opentelemetry)
+        end)
       end
 
       def get_span_attributes(attributes) do
