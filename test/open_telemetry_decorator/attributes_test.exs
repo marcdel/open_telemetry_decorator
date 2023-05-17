@@ -93,11 +93,11 @@ defmodule OpenTelemetryDecorator.AttributesTest do
     end
 
     test "handles nested structs" do
-      obj_with_struct = %{born_on: Date.new!(2000, 1, 1)}
+      one_level = %SomeStruct{beep: "boop"}
+      assert Attributes.get([obj: one_level], [[:obj, :beep]]) == [obj_beep: "boop"]
 
-      assert Attributes.get([obj: obj_with_struct], [[:obj, :born_on, :year]]) == [
-               obj_born_on_year: 2000
-             ]
+      two_levels = %SomeStruct{failed: %SomeStruct{count: 3}}
+      assert Attributes.get([obj: two_levels], [[:obj, :failed, :count]]) == [obj_failed_count: 3]
     end
 
     test "handles flat and nested attributes" do
