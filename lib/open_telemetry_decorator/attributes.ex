@@ -42,13 +42,13 @@ defmodule OpenTelemetryDecorator.Attributes do
   defp recursive_get_in(obj, []), do: obj
 
   defp recursive_get_in(obj, [key | nested_keys]) do
-    value =
+    nested_obj =
       case get_in(obj, [key]) do
-        value when is_struct(value) -> Map.from_struct(value)
-        value -> value
+        nested_obj when is_struct(nested_obj) -> Map.from_struct(nested_obj)
+        nested_obj -> nested_obj
       end
 
-    recursive_get_in(value, nested_keys)
+    recursive_get_in(nested_obj, nested_keys)
   end
 
   defp derived_name([attribute_name | nested_keys]) do

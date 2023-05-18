@@ -100,6 +100,15 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       assert Attributes.get([obj: two_levels], [[:obj, :failed, :count]]) == [obj_failed_count: 3]
     end
 
+    test "handles invalid requests for nested structs" do
+      one_level = %SomeStruct{beep: "boop"}
+      assert Attributes.get([obj: one_level], [[:obj, :wrong]]) == []
+
+      two_levels = %SomeStruct{failed: %SomeStruct{count: 3}}
+      assert Attributes.get([obj: two_levels], [[:obj, :wrong, :count]]) == []
+      assert Attributes.get([obj: two_levels], [[:obj, :failed, :wrong]]) == []
+    end
+
     test "handles flat and nested attributes" do
       attrs = Attributes.get([error: "whoops", obj: %{id: 1}], [:error, [:obj, :id]])
       assert attrs == [{:obj_id, 1}, {:error, "whoops"}]
