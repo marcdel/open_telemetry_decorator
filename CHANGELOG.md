@@ -1,5 +1,17 @@
 # OpenTelemetryDecorator
 
+## v1.4.1
+
+### Features
+
+- Adds span set attribute helper that treats attributes the same way `:include` does (currently `inspects` anything it doesn't know how to handle) (thanks @ulissesalmeida)
+- Updates :include attribute validator to allow nested string keys (thanks @leggebroten)
+
+### Bug fixes
+
+- Fixes an issue where indexing into a nested struct via `:include` would crash due to a `*Struct* does not implement the Access behaviour` error
+- Protect against context corruption (thanks @leggebroten)
+
 ## v1.4.0
 
 ### API
