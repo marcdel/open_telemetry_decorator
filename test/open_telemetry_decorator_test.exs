@@ -67,7 +67,7 @@ defmodule OpenTelemetryDecoratorTest do
                         attributes: attrs
                       )}
 
-      assert %{count: 2} = get_span_attributes(attrs)
+      assert %{"count" => 2} = get_span_attributes(attrs)
 
       assert_receive {:span,
                       span(
@@ -76,7 +76,7 @@ defmodule OpenTelemetryDecoratorTest do
                         attributes: attrs
                       )}
 
-      assert %{id: 1} = get_span_attributes(attrs)
+      assert %{"id" => 1} = get_span_attributes(attrs)
 
       assert_receive {:span,
                       span(
@@ -85,37 +85,37 @@ defmodule OpenTelemetryDecoratorTest do
                         attributes: attrs
                       )}
 
-      assert %{id: 2} = get_span_attributes(attrs)
+      assert %{"id" => 2} = get_span_attributes(attrs)
     end
 
     test "handles simple attributes" do
       Example.find(1)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert %{id: 1} = get_span_attributes(attrs)
+      assert %{"id" => 1} = get_span_attributes(attrs)
     end
 
     test "handles nested attributes" do
       Example.find(1)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert %{user_name: "my user"} = get_span_attributes(attrs)
+      assert %{"user_name" => "my user"} = get_span_attributes(attrs)
     end
 
     test "handles maps with string keys" do
       Example.parse_params(%{"id" => 12})
       assert_receive {:span, span(name: "Example.parse_params", attributes: attrs)}
-      assert %{params_id: 12} = get_span_attributes(attrs)
+      assert %{"params_id" => 12} = get_span_attributes(attrs)
     end
 
     test "handles handles underscored attributes" do
       Example.find(2)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert %{even: true} = get_span_attributes(attrs)
+      assert %{"even" => true} = get_span_attributes(attrs)
     end
 
     test "converts atoms to strings" do
       Example.step(:two)
       assert_receive {:span, span(name: "Example.step", attributes: attrs)}
-      assert %{id: ":two"} = get_span_attributes(attrs)
+      assert %{"id" => ":two"} = get_span_attributes(attrs)
     end
 
     test "does not include result unless asked for" do
@@ -127,7 +127,7 @@ defmodule OpenTelemetryDecoratorTest do
     test "does not include variables not in scope when the function exists" do
       Example.find(098)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert Map.has_key?(get_span_attributes(attrs), :error) == false
+      assert Map.has_key?(get_span_attributes(attrs), "error") == false
     end
 
     test "does not overwrite input parameters" do
@@ -145,7 +145,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert {:ok, 3} = OverwriteExample.param_override(1, 1)
 
       assert_receive {:span, span(name: "param_override", attributes: attrs)}
-      assert Map.get(get_span_attributes(attrs), :x) == 1
+      assert Map.get(get_span_attributes(attrs), "x") == 1
     end
 
     test "overwrites the default result value" do
@@ -160,7 +160,7 @@ defmodule OpenTelemetryDecoratorTest do
 
       ExampleResult.add(5, 5)
       assert_receive {:span, span(name: "ExampleResult.add", attributes: attrs)}
-      assert Map.get(get_span_attributes(attrs), :result) == 10
+      assert Map.get(get_span_attributes(attrs), "result") == 10
     end
 
     test "supports nested results" do
@@ -175,7 +175,7 @@ defmodule OpenTelemetryDecoratorTest do
 
       NestedResult.make_struct(5, 5)
       assert_receive {:span, span(name: "ExampleResult.make_struct", attributes: attrs)}
-      assert Map.get(get_span_attributes(attrs), :result_sum) == 10
+      assert Map.get(get_span_attributes(attrs), "result_sum") == 10
     end
 
     test "does not include anything unless specified" do

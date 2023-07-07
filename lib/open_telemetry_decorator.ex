@@ -60,6 +60,7 @@ defmodule OpenTelemetryDecorator do
             |> Keyword.put(:result, result)
             |> Attributes.get(unquote(include))
             |> Keyword.merge(input_params)
+            |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
 
           # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
           Span.set_attributes(span_context, attrs)
