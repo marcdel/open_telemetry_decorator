@@ -48,15 +48,15 @@ config :opentelemetry, :processors,
 
 ## Usage
 
-Add `use OpenTelemetryDecorator` to the module, and decorate any methods you want to trace with `@decorate trace("span name")`.
+Add `use OpenTelemetryDecorator` to the module, and decorate any methods you want to trace with `@decorate with_span("span name")`.
 
-The `trace` decorator will automatically wrap the decorated function in an opentelemetry span with the provided name.
+The `with_span` decorator will automatically wrap the decorated function in an opentelemetry span with the provided name.
 
 ```elixir
 defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
-  @decorate trace("worker.do_work")
+  @decorate with_span("worker.do_work")
   def do_work(arg1, arg2) do
     ...doing work
   end
@@ -65,13 +65,13 @@ end
 
 ### Span Attributes
 
-The `trace` decorator allows you to specify an `include` option which gives you more flexibility with what you can include in the span attributes. Omitting the `includes` option with `trace` means no attributes will be added to the span by the decorator.
+The `with_span` decorator allows you to specify an `include` option which gives you more flexibility with what you can include in the span attributes. Omitting the `include` option with `with_span` means no attributes will be added to the span by the decorator.
 
 ```elixir
 defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
-  @decorate trace("worker.do_work", include: [:arg1, :arg2])
+  @decorate with_span("worker.do_work", include: [:arg1, :arg2])
   def do_work(arg1, arg2) do
     # ...doing work
   end
@@ -85,7 +85,7 @@ defmodule MyApp.Worker do
   use OpenTelemetryDecorator
   alias OpenTelemetryDecorator.Attributes
 
-  @decorate trace("worker.do_work")
+  @decorate with_span("worker.do_work")
   def do_work(arg1, arg2) do
     Attributes.set(arg1: arg1, arg2: arg2)
     # ...doing work
@@ -141,7 +141,7 @@ Note that variables declared as part of a `with` block are in a separate scope s
 defmodule MyApp.Math do
   use OpenTelemetryDecorator
 
-  @decorate trace("my_app.math.add", include: [:a, :b, :sum])
+  @decorate with_span("my_app.math.add", include: [:a, :b, :sum])
   def add(a, b) do
     sum = a + b
     {:ok, sum}
@@ -155,7 +155,7 @@ The result of the function by including the atom `:result`:
 defmodule MyApp.Math do
   use OpenTelemetryDecorator
 
-  @decorate trace("my_app.math.add", include: [:result])
+  @decorate with_span("my_app.math.add", include: [:result])
   def add(a, b) do
     {:ok, a + b}
   end
@@ -168,7 +168,7 @@ Map/struct properties using nested lists of atoms:
 defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
-  @decorate trace("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
+  @decorate with_span("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
   def do_work(arg1, arg2) do
     total = some_calculation(arg1.count, arg2.count)
     {:ok, total}
@@ -180,7 +180,7 @@ end
 defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
-  @decorate trace("my_app.worker.do_work", include: [[:calc, "sum"], [:calc, "product"]])
+  @decorate with_span("my_app.worker.do_work", include: [[:calc, "sum"], [:calc, "product"]])
   def do_work(obj) do
     calc = %{"sum" => 10, "product" => 25}
     {:ok, calc}
@@ -194,7 +194,7 @@ The map/struct properties of the result of the function:
 defmodule MyApp.Math do
   use OpenTelemetryDecorator
 
-  @decorate trace("my_app.math.add", include: [[:result, :sum]])
+  @decorate with_span("my_app.math.add", include: [[:result, :sum]])
   def add(a, b) do
     %{sum: a + b}
   end

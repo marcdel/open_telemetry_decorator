@@ -16,16 +16,16 @@ defmodule OpenTelemetryDecoratorTest do
     defmodule Example do
       use OpenTelemetryDecorator
 
-      @decorate trace("Example.step", include: [:id, :result])
+      @decorate with_span("Example.step", include: [:id, :result])
       def step(id), do: {:ok, id}
 
-      @decorate trace("Example.workflow", include: [:count, :result])
+      @decorate with_span("Example.workflow", include: [:count, :result])
       def workflow(count), do: Enum.map(1..count, fn id -> step(id) end)
 
-      @decorate trace("Example.numbers", include: [:up_to])
+      @decorate with_span("Example.numbers", include: [:up_to])
       def numbers(up_to), do: [1..up_to]
 
-      @decorate trace("Example.find", include: [:id, [:user, :name], :error, :_even, :result])
+      @decorate with_span("Example.find", include: [:id, [:user, :name], :error, :_even, :result])
       def find(id) do
         _even = rem(id, 2) == 0
         user = %{id: id, name: "my user"}
@@ -39,17 +39,17 @@ defmodule OpenTelemetryDecoratorTest do
         end
       end
 
-      @decorate trace("Example.parse_params", include: [[:params, "id"]])
+      @decorate with_span("Example.parse_params", include: [[:params, "id"]])
       def parse_params(params) do
         %{"id" => id} = params
 
         id
       end
 
-      @decorate trace("Example.no_include")
+      @decorate with_span("Example.no_include")
       def no_include(opts), do: {:ok, opts}
 
-      @decorate trace("Example.with_exception")
+      @decorate with_span("Example.with_exception")
       def with_exception, do: File.read!("fake file")
     end
 
@@ -134,7 +134,7 @@ defmodule OpenTelemetryDecoratorTest do
       defmodule OverwriteExample do
         use OpenTelemetryDecorator
 
-        @decorate trace("param_override", include: [:x, :y])
+        @decorate with_span("param_override", include: [:x, :y])
         def param_override(x, y) do
           x = x + 1
 
@@ -152,7 +152,7 @@ defmodule OpenTelemetryDecoratorTest do
       defmodule ExampleResult do
         use OpenTelemetryDecorator
 
-        @decorate trace("ExampleResult.add", include: [:a, :b, :result])
+        @decorate with_span("ExampleResult.add", include: [:a, :b, :result])
         def add(a, b) do
           a + b
         end
@@ -167,7 +167,7 @@ defmodule OpenTelemetryDecoratorTest do
       defmodule NestedResult do
         use OpenTelemetryDecorator
 
-        @decorate trace("ExampleResult.make_struct", include: [:a, :b, [:result, :sum]])
+        @decorate with_span("ExampleResult.make_struct", include: [:a, :b, [:result, :sum]])
         def make_struct(a, b) do
           %{sum: a + b}
         end

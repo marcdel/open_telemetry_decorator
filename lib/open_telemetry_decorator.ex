@@ -9,13 +9,15 @@ defmodule OpenTelemetryDecorator do
              # compensate for anchor id differences between ExDoc and GitHub
              |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
 
-  use Decorator.Define, trace: 1, trace: 2
+  use Decorator.Define, with_span: 1, with_span: 2, trace: 1, trace: 2
 
   alias OpenTelemetryDecorator.Attributes
   alias OpenTelemetryDecorator.Validator
 
+  def trace(span_name, opts \\ [], body, context), do: with_span(span_name, opts, body, context)
+
   @doc """
-  Decorate a function to add an OpenTelemetry trace with a named span.
+  Decorate a function to add to or create an OpenTelemetry trace with a named span.
 
   You can provide span attributes by specifying a list of variable names as atoms.
   This list can include:
@@ -28,7 +30,7 @@ defmodule OpenTelemetryDecorator do
   defmodule MyApp.Worker do
     use OpenTelemetryDecorator
 
-    @decorate trace("my_app.worker.do_work", include: [:arg1, [:arg2, :count], :total, :result])
+    @decorate with_span("my_app.worker.do_work", include: [:arg1, [:arg2, :count], :total, :result])
     def do_work(arg1, arg2) do
       total = arg1.count + arg2.count
       {:ok, total}
@@ -36,7 +38,7 @@ defmodule OpenTelemetryDecorator do
   end
   ```
   """
-  def trace(span_name, opts \\ [], body, context) do
+  def with_span(span_name, opts \\ [], body, context) do
     include = Keyword.get(opts, :include, [])
     Validator.validate_args(span_name, include)
 
