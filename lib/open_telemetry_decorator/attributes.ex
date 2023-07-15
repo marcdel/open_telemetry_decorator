@@ -3,7 +3,7 @@ defmodule OpenTelemetryDecorator.Attributes do
   require OpenTelemetry.Tracer, as: Tracer
 
   def set(name, value) do
-    Tracer.set_attribute(name, to_otlp_value(value))
+    Tracer.set_attribute(prefix_name(name), to_otlp_value(value))
   end
 
   def set(attributes) when is_struct(attributes) do
@@ -11,9 +11,9 @@ defmodule OpenTelemetryDecorator.Attributes do
   end
 
   def set(attributes) do
-    attributes
-    |> Enum.map(fn {key, value} -> {key, to_otlp_value(value)} end)
-    |> Tracer.set_attributes()
+    Enum.map(attributes, fn {key, value} ->
+      set(key, to_otlp_value(value))
+    end)
   end
 
   def get(all_attributes, requested_attributes) do
