@@ -14,6 +14,7 @@ defmodule OtelHelper do
         Application.load(:opentelemetry)
 
         Application.put_env(:opentelemetry, :processors, [
+          {:otel_batch_processor, %{scheduled_delay_ms: 1, exporter: {:otel_exporter_pid, self()}}},
           {:otel_simple_processor, %{exporter: {:otel_exporter_pid, self()}}}
         ])
 

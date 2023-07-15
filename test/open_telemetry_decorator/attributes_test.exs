@@ -49,9 +49,38 @@ defmodule OpenTelemetryDecorator.AttributesTest do
         Attributes.set(%SomeStruct{beep: "boop", count: 12, maths: 1.2, failed: true})
       end
 
+      expected = %{
+        "some_struct.beep" => "boop",
+        "some_struct.count" => 12,
+        "some_struct.failed" => true,
+        "some_struct.maths" => 1.2
+      }
+
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
 
-      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+      assert get_span_attributes(attrs) == expected
+    end
+
+    test "maps and structs are prefixed with the object name" do
+      Tracer.with_span "important_stuff" do
+        Attributes.set(%SomeStruct{beep: "boop", count: 12, maths: %{x: 1.2}, failed: true})
+        Attributes.set("some_obj", %{beep: "boop", count: 12, maths: 1.2, failed: true})
+      end
+
+      expected = %{
+        "some_struct.beep" => "boop",
+        "some_struct.count" => 12,
+        "some_struct.failed" => true,
+        "some_struct.maths" => "%{x: 1.2}",
+        "some_obj.beep" => "boop",
+        "some_obj.count" => 12,
+        "some_obj.failed" => true,
+        "some_obj.maths" => 1.2
+      }
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == expected
     end
 
     test "inspect()s non-otlp attributes before setting them on the current span" do
@@ -64,11 +93,11 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       end
 
       expected = %{
-        result: "{:error, \"too sick bro\"}",
-        color: ":pink",
-        numbers: "[1, 2, 3, 4]",
-        object: "%{id: 1}",
-        params: "%{\"id\" => 1}"
+        :result => "{:error, \"too sick bro\"}",
+        :color => ":pink",
+        :numbers => "[1, 2, 3, 4]",
+        "object.id" => 1,
+        "params.id" => 1
       }
 
       assert_receive {:span, span(name: "whaaaat", attributes: attrs)}

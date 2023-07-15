@@ -2,17 +2,28 @@ defmodule OpenTelemetryDecorator.Attributes do
   @moduledoc false
   require OpenTelemetry.Tracer, as: Tracer
 
+  def set(name, value) when is_struct(value) do
+    set(name, Map.from_struct(value))
+  end
+
+  def set(name, value) when is_map(value) do
+    value
+    |> Enum.map(fn {key, value} -> {"#{name}#{joiner()}#{key}", value} end)
+    |> set()
+  end
+
   def set(name, value) do
     Tracer.set_attribute(name, to_otlp_value(value))
   end
 
   def set(attributes) when is_struct(attributes) do
-    set(Map.from_struct(attributes))
+    name = short_struct_name(attributes)
+    set(prefix_name(name), Map.from_struct(attributes))
   end
 
   def set(attributes) do
     attributes
-    |> Enum.map(fn {key, value} -> {key, to_otlp_value(value)} end)
+    |> Enum.map(fn {key, value} -> {prefix_name(key), to_otlp_value(value)} end)
     |> Tracer.set_attributes()
   end
 
@@ -64,15 +75,13 @@ defmodule OpenTelemetryDecorator.Attributes do
   end
 
   defp composite_name(keys) do
-    joiner = Application.get_env(:open_telemetry_decorator, :attr_joiner) || "."
-    Enum.join(keys, joiner)
+    Enum.join(keys, joiner())
   end
 
   defp prefix_name(name) when is_atom(name), do: prefix_name(Atom.to_string(name))
 
   defp prefix_name(name) when is_binary(name) do
-    prefix = Application.get_env(:open_telemetry_decorator, :attr_prefix) || ""
-    String.to_atom(prefix <> name)
+    String.to_atom(prefix() <> name)
   end
 
   defp remove_underscore(name) when is_atom(name) do
@@ -90,5 +99,32 @@ defmodule OpenTelemetryDecorator.Attributes do
            when is_binary(value) or is_integer(value) or is_boolean(value) or is_float(value)
 
   defp to_otlp_value(value) when is_otlp_value(value), do: value
+
+#  defp to_otlp_value(value) when is_struct(value) do
+#    name = short_struct_name(value)
+#
+#    value
+#    |> as_map()
+#    |> Enum.map(fn {key, value} -> {"#{name}#{joiner()}#{key}", to_otlp_value(value)} end)
+#    |> dbg()
+#  end
+
   defp to_otlp_value(value), do: inspect(value)
+
+  defp joiner do
+    Application.get_env(:open_telemetry_decorator, :attr_joiner) || "."
+  end
+
+  defp prefix do
+    Application.get_env(:open_telemetry_decorator, :attr_prefix) || ""
+  end
+
+  defp short_struct_name(variable) do
+    variable
+    |> Map.fetch!(:__struct__)
+    |> Module.split()
+    |> List.last()
+    |> Macro.camelize()
+    |> Macro.underscore()
+  end
 end
