@@ -77,6 +77,36 @@ defmodule OpenTelemetryDecorator.AttributesTest do
     end
   end
 
+  describe "set prefixes attributes with the configured prefix" do
+    setup do
+      prev = Application.get_env(:open_telemetry_decorator, :attr_prefix)
+      Application.put_env(:open_telemetry_decorator, :attr_prefix, "app.")
+      on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_prefix, prev) end)
+    end
+
+    test "when prefix is configured, prefixes attribute names" do
+      Tracer.with_span "important_stuff" do
+        Attributes.set(beep: "boop", count: 12)
+        Attributes.set(%{maths: 1.2, failed: true})
+        Attributes.set(:result, {:error, "too sick bro"})
+        Attributes.set(:color, "pink")
+      end
+
+      expected = %{
+        "app.beep": "boop",
+        "app.color": "pink",
+        "app.count": 12,
+        "app.failed": true,
+        "app.maths": 1.2,
+        "app.result": "{:error, \"too sick bro\"}"
+      }
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == expected
+    end
+  end
+
   describe "get" do
     setup do
       prev = Application.get_env(:open_telemetry_decorator, :attr_joiner)
