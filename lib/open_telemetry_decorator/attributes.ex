@@ -3,7 +3,10 @@ defmodule OpenTelemetryDecorator.Attributes do
   require OpenTelemetry.Tracer, as: Tracer
 
   def set(name, value) do
-    Tracer.set_attribute(prefix_name(name), to_otlp_value(value))
+    name
+    |> prefix_name()
+    |> Atom.to_string()
+    |> Tracer.set_attribute(to_otlp_value(value))
   end
 
   def set(attributes) when is_struct(attributes) do

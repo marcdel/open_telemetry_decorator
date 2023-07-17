@@ -21,7 +21,12 @@ defmodule OpenTelemetryDecorator.AttributesTest do
 
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
 
-      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+      assert get_span_attributes(attrs) == %{
+               "beep" => "boop",
+               "count" => 12,
+               "failed" => true,
+               "maths" => 1.2
+             }
     end
 
     test "can take a keyword list" do
@@ -31,7 +36,12 @@ defmodule OpenTelemetryDecorator.AttributesTest do
 
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
 
-      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+      assert get_span_attributes(attrs) == %{
+               "beep" => "boop",
+               "count" => 12,
+               "failed" => true,
+               "maths" => 1.2
+             }
     end
 
     test "can take a map" do
@@ -41,7 +51,12 @@ defmodule OpenTelemetryDecorator.AttributesTest do
 
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
 
-      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+      assert get_span_attributes(attrs) == %{
+               "beep" => "boop",
+               "count" => 12,
+               "failed" => true,
+               "maths" => 1.2
+             }
     end
 
     test "can take a struct" do
@@ -51,7 +66,12 @@ defmodule OpenTelemetryDecorator.AttributesTest do
 
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
 
-      assert get_span_attributes(attrs) == %{beep: "boop", count: 12, failed: true, maths: 1.2}
+      assert get_span_attributes(attrs) == %{
+               "beep" => "boop",
+               "count" => 12,
+               "failed" => true,
+               "maths" => 1.2
+             }
     end
 
     test "inspect()s non-otlp attributes before setting them on the current span" do
@@ -64,11 +84,11 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       end
 
       expected = %{
-        result: "{:error, \"too sick bro\"}",
-        color: ":pink",
-        numbers: "[1, 2, 3, 4]",
-        object: "%{id: 1}",
-        params: "%{\"id\" => 1}"
+        "result" => "{:error, \"too sick bro\"}",
+        "color" => ":pink",
+        "numbers" => "[1, 2, 3, 4]",
+        "object" => "%{id: 1}",
+        "params" => "%{\"id\" => 1}"
       }
 
       assert_receive {:span, span(name: "whaaaat", attributes: attrs)}
@@ -93,12 +113,26 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       end
 
       expected = %{
-        "app.beep": "boop",
-        "app.color": "pink",
-        "app.count": 12,
-        "app.failed": true,
-        "app.maths": 1.2,
-        "app.result": "{:error, \"too sick bro\"}"
+        "app.beep" => "boop",
+        "app.color" => "pink",
+        "app.count" => 12,
+        "app.failed" => true,
+        "app.maths" => 1.2,
+        "app.result" => "{:error, \"too sick bro\"}"
+      }
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == expected
+    end
+
+    test "does not prefix the error attribute" do
+      Tracer.with_span "important_stuff" do
+        Attributes.set(:error, "too sick bro")
+      end
+
+      expected = %{
+        "error" => "too sick bro"
       }
 
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}

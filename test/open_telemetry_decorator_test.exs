@@ -51,6 +51,9 @@ defmodule OpenTelemetryDecoratorTest do
 
       @decorate with_span("Example.with_exception")
       def with_exception, do: File.read!("fake file")
+
+      @decorate with_span("Example.with_error")
+      def with_error, do: OpenTelemetryDecorator.Attributes.set(:error, "ruh roh!")
     end
 
     test "does not modify inputs or function result" do
@@ -207,6 +210,13 @@ defmodule OpenTelemetryDecoratorTest do
           assert_receive {:span, span(name: "Example.with_exception", status: status)}
           assert {:status, :error, ""} = status
       end
+    end
+
+    test "can set the error attribute on the span" do
+      Example.with_error()
+      assert_receive {:span, span(name: "Example.with_error", attributes: attrs)}
+      expected = %{"error" => "ruh roh!"}
+      assert get_span_attributes(attrs) == expected
     end
   end
 end
