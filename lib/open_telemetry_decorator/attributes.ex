@@ -68,6 +68,9 @@ defmodule OpenTelemetryDecorator.Attributes do
     Enum.join(keys, joiner)
   end
 
+  defp prefix_name(:error), do: :error
+  defp prefix_name("error"), do: :error
+
   defp prefix_name(name) when is_atom(name), do: prefix_name(Atom.to_string(name))
 
   defp prefix_name(name) when is_binary(name) do

@@ -1,10 +1,14 @@
 # OpenTelemetryDecorator
 
+## v1.4.3
+- Do not prefix "error" attributes with the configured prefix since these have special meaning in open telemetry
+
 ## v1.4.2
 
 - Bump opentelemetry_exporter from 1.4.1 to 1.5.0 by @dependabot in https://github.com/marcdel/open_telemetry_decorator/pull/111
 - Ensure that keys are strings before we call Span.set_attributes (https://github.com/marcdel/open_telemetry_decorator/issues/114)
 - Adds with_span decorator (delegates to trace, so you can use either)
+- Ensure attributes set with the helper get prefixed
 
 ## v1.4.1
 
