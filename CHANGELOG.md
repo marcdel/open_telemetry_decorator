@@ -1,5 +1,8 @@
 # OpenTelemetryDecorator
 
+## v1.4.4
+- Fixes an issue with error not being recorded in the span attributes when using `Attributes.set` since it was being passed as an atom.
+
 ## v1.4.3
 - Do not prefix "error" attributes with the configured prefix since these have special meaning in open telemetry
 
