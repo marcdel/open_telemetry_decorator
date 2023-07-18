@@ -48,9 +48,8 @@ jobs:
       - name: mix deps.get
         run: |
           mix deps.get
-          mix deps.unlock --unused
-          mix deps.clean --unused
-          git diff --exit-code mix.lock
+          mix deps.unlock --check-unused
+          mix hex.outdated
       - name: mix compile (dev)
         run: |
           mix deps.compile
