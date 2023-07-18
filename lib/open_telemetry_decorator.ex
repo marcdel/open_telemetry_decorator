@@ -54,6 +54,8 @@ defmodule OpenTelemetryDecorator do
           |> Attributes.get(unquote(include))
           |> Keyword.delete(:result)
 
+        Attributes.set(input_params)
+
         try do
           result = unquote(body)
 

@@ -49,8 +49,11 @@ defmodule OpenTelemetryDecoratorTest do
       @decorate with_span("Example.no_include")
       def no_include(opts), do: {:ok, opts}
 
-      @decorate with_span("Example.with_exception")
-      def with_exception, do: File.read!("fake file")
+      @decorate with_span("Example.with_exception", include: [:file_name, :body_var])
+      def with_exception(file_name) do
+        body_var = "hello!"
+        File.read!("#{file_name}.#{body_var}")
+      end
 
       @decorate with_span("Example.with_error")
       def with_error, do: OpenTelemetryDecorator.Attributes.set(:error, "ruh roh!")
@@ -189,7 +192,7 @@ defmodule OpenTelemetryDecoratorTest do
 
     test "records an exception event" do
       try do
-        Example.with_exception()
+        Example.with_exception("fake file")
         flunk("Should have re-raised the exception")
       rescue
         e ->
@@ -199,12 +202,24 @@ defmodule OpenTelemetryDecoratorTest do
       end
     end
 
+    test "adds included input params on exception" do
+      try do
+        Example.with_exception("fake file")
+        flunk("Should have re-raised a File.read!/1 exception")
+      rescue
+        _ ->
+          expected = %{"file_name" => "fake file"}
+          assert_receive {:span, span(name: "Example.with_exception", attributes: attrs)}
+          assert get_span_attributes(attrs) == expected
+      end
+    end
+
     # The assumption here is that if an exception bubbles up
     # outside of the current span, we can consider it "unhandled"
     # and set the status to error.
     test "sets the status of the span to error" do
       try do
-        Example.with_exception()
+        Example.with_exception("fake file")
       rescue
         _ ->
           assert_receive {:span, span(name: "Example.with_exception", status: status)}
