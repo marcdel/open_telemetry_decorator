@@ -1,5 +1,8 @@
 # OpenTelemetryDecorator
 
+## v1.4.5
+- Fixes an issue with included input parameters not being recorded in the span attributes when an exception is raised. Included body parameters will still not be included since they are not available from the rescue block.
+
 ## v1.4.4
 - Fixes an issue with error not being recorded in the span attributes when using `Attributes.set` since it was being passed as an atom.
 
