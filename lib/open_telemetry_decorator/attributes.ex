@@ -1,12 +1,22 @@
 defmodule OpenTelemetryDecorator.Attributes do
   @moduledoc false
   require OpenTelemetry.Tracer, as: Tracer
+  require OpenTelemetry.Span, as: Span
 
-  def set(name, value) do
-    name
-    |> prefix_name()
-    |> Atom.to_string()
-    |> Tracer.set_attribute(to_otlp_value(value))
+  # This is getting way too fucking complicated
+
+  def set(span_ctx, name, value) do
+    Span.set_attribute(span_ctx, Atom.to_string(prefix_name(name)), to_otlp_value(value))
+  end
+
+  def set(name, value) when is_binary(name) or is_atom(name) do
+    set(Tracer.current_span_ctx(), name, value)
+  end
+
+  def set(span_ctx, attributes) do
+    Enum.map(attributes, fn {key, value} ->
+      set(span_ctx, key, value)
+    end)
   end
 
   def set(attributes) when is_struct(attributes) do
@@ -14,9 +24,7 @@ defmodule OpenTelemetryDecorator.Attributes do
   end
 
   def set(attributes) do
-    Enum.map(attributes, fn {key, value} ->
-      set(key, to_otlp_value(value))
-    end)
+    set(Tracer.current_span_ctx(), attributes)
   end
 
   def get(all_attributes, requested_attributes) do

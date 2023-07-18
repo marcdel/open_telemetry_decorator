@@ -67,7 +67,7 @@ defmodule OpenTelemetryDecorator do
             |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
 
           # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
-          Span.set_attributes(span_context, attrs)
+          Attributes.set(span_context, attrs)
 
           result
         rescue
