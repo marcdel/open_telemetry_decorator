@@ -40,7 +40,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       {:decorator, "~> 1.4"},
       {:dialyxir, "~> 1.2", only: :dev, runtime: false},
       {:ex_doc, "~> 0.30.3", only: :dev, runtime: false},
-      {:excoveralls, "~> 0.16.0", only: :test, runtime: false},
+      {:excoveralls, "~> 0.17.0", only: :test, runtime: false},
       {:opentelemetry_api, "~> 1.2"},
       {:opentelemetry, "~> 1.3", only: :test},
       {:opentelemetry_exporter, "~> 1.4", only: :test}
