@@ -16,8 +16,8 @@ check: _build/dev _build/test
 	mix credo --strict
 	mix hex.outdated
 	mix dialyzer
-	mix docs
 	mix format
+	mix docs
 	@echo "OK"
 
 mix.lock deps: mix.exs
