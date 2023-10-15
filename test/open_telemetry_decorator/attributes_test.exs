@@ -156,12 +156,27 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       assert Attributes.get([obj: %{id: 1}], [[:obj, :id]]) == [obj_id: 1]
     end
 
+    test "handles expanding map" do
+      attributes = Attributes.get([obj: %{id: 1, foo: 2}], [:obj], true)
+      assert {:obj_id, 1} in attributes
+      assert {:obj_foo, 2} in attributes
+
+      attributes = Attributes.get([obj: %{id: 1, foo: 2, foop: %{id: 3}}, obj_b: %{id: 4}], [:obj, :obj_b], true)
+      assert {:obj_id, 1} in attributes
+      assert {:obj_foo, 2} in attributes
+      assert {:obj_foop_id, 3} in attributes
+      assert {:obj_b_id, 4} in attributes
+    end
+
     test "handles nested structs" do
       one_level = %SomeStruct{beep: "boop"}
       assert Attributes.get([obj: one_level], [[:obj, :beep]]) == [obj_beep: "boop"]
 
       two_levels = %SomeStruct{failed: %SomeStruct{count: 3}}
       assert Attributes.get([obj: two_levels], [[:obj, :failed, :count]]) == [obj_failed_count: 3]
+
+      # Use expand_all_maps functionality
+      assert Attributes.get([obj: two_levels], [:obj], true) == [obj_failed_count: 3]
     end
 
     test "handles invalid requests for nested structs" do
