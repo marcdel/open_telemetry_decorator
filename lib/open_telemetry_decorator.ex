@@ -65,7 +65,7 @@ defmodule OpenTelemetryDecorator do
           attrs =
             Kernel.binding()
             |> Keyword.put(:result, result)
-            |> Attributes.get(unquote(include))
+            |> Attributes.get(unquote(include), unquote(expand_all_maps))
             |> Keyword.merge(input_params)
             |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
 
