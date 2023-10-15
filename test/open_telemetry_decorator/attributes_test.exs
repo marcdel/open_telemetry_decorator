@@ -161,7 +161,13 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       assert {:obj_id, 1} in attributes
       assert {:obj_foo, 2} in attributes
 
-      attributes = Attributes.get([obj: %{id: 1, foo: 2, foop: %{id: 3}}, obj_b: %{id: 4}], [:obj, :obj_b], true)
+      attributes =
+        Attributes.get(
+          [obj: %{id: 1, foo: 2, foop: %{id: 3}}, obj_b: %{id: 4}],
+          [:obj, :obj_b],
+          true
+        )
+
       assert {:obj_id, 1} in attributes
       assert {:obj_foo, 2} in attributes
       assert {:obj_foop_id, 3} in attributes
