@@ -29,28 +29,50 @@ defmodule OpenTelemetryDecorator.Attributes do
 
   def get(all_attributes, requested_attributes) do
     Enum.reduce(requested_attributes, [], fn requested_attribute, taken_attributes ->
-      case get_attribute(all_attributes, requested_attribute) do
-        {name, value} -> Keyword.put(taken_attributes, name, value)
-        _ -> taken_attributes
-      end
+      otlp_attributes = get_attributes(all_attributes, requested_attribute)
+
+      otlp_attributes ++ taken_attributes
     end)
   end
 
-  defp get_attribute(attributes, [attribute_name | nested_keys]) do
+  defp get_attributes(attributes, [attribute_name | nested_keys]) do
     requested_obj = attributes |> Keyword.get(attribute_name) |> as_map()
 
     if value = recursive_get_in(requested_obj, nested_keys) do
-      {derived_name([attribute_name | nested_keys]), to_otlp_value(value)}
+      otlp_value = to_otlp_value(value)
+
+      map_otlp_attributes([attribute_name | nested_keys], otlp_value)
+    else
+      []
     end
   end
 
-  defp get_attribute(attributes, attribute_name) do
+  defp get_attributes(attributes, attribute_name) do
     if value = Keyword.get(attributes, attribute_name) do
-      {derived_name(attribute_name), to_otlp_value(value)}
+      otlp_value = to_otlp_value(value)
+
+      map_otlp_attributes([attribute_name], otlp_value)
+    else
+      []
+    end
+  end
+
+  defp map_otlp_attributes(name_nesting, otlp_value) do
+    case otlp_value do
+      attrs when is_list(attrs) ->
+        Enum.map(attrs, fn {key, value} ->
+          name = derived_name(name_nesting ++ [key])
+          {name, value}
+        end)
+
+      otlp_value ->
+        [{derived_name(name_nesting), otlp_value}]
     end
   end
 
   defp recursive_get_in(obj, []), do: obj
+
+  defp recursive_get_in(obj, [key]), do: get_in(obj, [key])
 
   defp recursive_get_in(obj, [key | nested_keys]) do
     nested_obj =
@@ -104,5 +126,11 @@ defmodule OpenTelemetryDecorator.Attributes do
            when is_binary(value) or is_integer(value) or is_boolean(value) or is_float(value)
 
   defp to_otlp_value(value) when is_otlp_value(value), do: value
-  defp to_otlp_value(value), do: inspect(value)
+
+  defp to_otlp_value(value) do
+    case OpenTelemetryDecorator.Traceable.impl_for(value) do
+      nil -> inspect(value)
+      impl -> impl.otlp_value(value)
+    end
+  end
 end
