@@ -7,10 +7,9 @@
 # General application configuration
 import Config
 
-config :open_telemetry_decorator,
-  attr_prefix: "",
-  attr_joiner: ".",
-  expand_maps: false
+config :open_telemetry_decorator, attr_prefix: ""
+config :open_telemetry_decorator, attr_joiner: "."
+config :open_telemetry_decorator, expand_maps: false
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

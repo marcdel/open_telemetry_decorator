@@ -14,7 +14,7 @@ defmodule OpenTelemetryDecorator do
   alias OpenTelemetryDecorator.Attributes
   alias OpenTelemetryDecorator.Validator
 
-  @default_expand_maps Application.compile_env(:open_telemetry_decorator, :expand_maps)
+  @default_expand_maps Application.compile_env(:open_telemetry_decorator, :expand_maps, false)
 
   def trace(span_name, opts \\ [], body, context), do: with_span(span_name, opts, body, context)
 
