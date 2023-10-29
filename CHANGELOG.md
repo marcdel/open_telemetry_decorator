@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.4.7
+- Fixes a bug causing the attribute prefix to be appended twice when using the include option
+- Update and remove unused dependencies
+
 ## v1.4.6
 - Updates dependencies, notably minor versions of the opentelemetry api and sdk
 ```shell
