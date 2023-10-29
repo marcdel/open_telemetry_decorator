@@ -190,6 +190,45 @@ defmodule OpenTelemetryDecorator.AttributesTest do
       assert attrs == [{:result_a, "b"}, {:obj_id, 1}]
     end
 
+    test "handles traceable scalar otlp values" do
+      attributes = [date: ~D[2020-01-01], obj: %{checkout: ~D[2021-01-01]}]
+      required_attributes = [:date, [:obj, :checkout]]
+
+      attrs = Attributes.get(attributes, required_attributes)
+
+      assert attrs == [obj_checkout: "2021-01-01", date: "2020-01-01"]
+    end
+
+    test "handles traceable list of otlp key and values" do
+      attributes = [
+        uri: URI.parse("https://example.com"),
+        obj: %{home_page: URI.parse("https://example.com/home")}
+      ]
+
+      required_attributes = [:uri, [:obj, :home_page]]
+
+      attrs = Attributes.get(attributes, required_attributes)
+
+      assert attrs == [
+               obj_home_page_authority: "example.com",
+               obj_home_page_fragment: nil,
+               obj_home_page_host: "example.com",
+               obj_home_page_path: "/home",
+               obj_home_page_port: 443,
+               obj_home_page_query: nil,
+               obj_home_page_scheme: "https",
+               obj_home_page_userinfo: nil,
+               uri_authority: "example.com",
+               uri_fragment: nil,
+               uri_host: "example.com",
+               uri_path: nil,
+               uri_port: 443,
+               uri_query: nil,
+               uri_scheme: "https",
+               uri_userinfo: nil
+             ]
+    end
+
     test "when target value is valid OTLP type, use it" do
       assert [{:val, 42.42}] == Attributes.get([val: 42.42], [:val])
       assert [{:val, true}] == Attributes.get([val: true], [:val])
