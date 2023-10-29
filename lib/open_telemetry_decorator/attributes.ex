@@ -86,7 +86,12 @@ defmodule OpenTelemetryDecorator.Attributes do
 
   defp prefix_name(name) when is_binary(name) do
     prefix = Application.get_env(:open_telemetry_decorator, :attr_prefix) || ""
-    String.to_atom(prefix <> name)
+
+    if String.starts_with?(name, prefix) do
+      String.to_atom(name)
+    else
+      String.to_atom(prefix <> name)
+    end
   end
 
   defp remove_underscore(name) when is_atom(name) do
