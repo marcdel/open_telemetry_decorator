@@ -14,6 +14,7 @@ TEST := $(shell find test -name \*.ex)
 check: _build/dev _build/test
 	mix test
 	mix credo --strict
+	mix deps.unlock --check-unused
 	mix hex.outdated
 	mix dialyzer
 	mix format
