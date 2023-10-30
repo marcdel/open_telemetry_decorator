@@ -14,6 +14,8 @@ defmodule OpenTelemetryDecorator do
   alias OpenTelemetryDecorator.Attributes
   alias OpenTelemetryDecorator.Validator
 
+  @default_expand_maps Application.compile_env(:open_telemetry_decorator, :expand_maps, false)
+
   def trace(span_name, opts \\ [], body, context), do: with_span(span_name, opts, body, context)
 
   @doc """
@@ -40,6 +42,7 @@ defmodule OpenTelemetryDecorator do
   """
   def with_span(span_name, opts \\ [], body, context) do
     include = Keyword.get(opts, :include, [])
+    expand_maps = Keyword.get(opts, :expand_maps, @default_expand_maps)
     Validator.validate_args(span_name, include)
 
     quote location: :keep do
@@ -51,7 +54,7 @@ defmodule OpenTelemetryDecorator do
 
         input_params =
           Kernel.binding()
-          |> Attributes.get(unquote(include))
+          |> Attributes.get(unquote(include), unquote(expand_maps))
           |> Keyword.delete(:result)
 
         Attributes.set(input_params)
@@ -62,7 +65,7 @@ defmodule OpenTelemetryDecorator do
           attrs =
             Kernel.binding()
             |> Keyword.put(:result, result)
-            |> Attributes.get(unquote(include))
+            |> Attributes.get(unquote(include), unquote(expand_maps))
             |> Keyword.merge(input_params)
             |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
 

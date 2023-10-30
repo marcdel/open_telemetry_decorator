@@ -27,16 +27,32 @@ defmodule OpenTelemetryDecorator.Attributes do
     set(Tracer.current_span_ctx(), attributes)
   end
 
-  def get(all_attributes, requested_attributes) do
+  def get(all_attributes, requested_attributes, expand_maps \\ false) do
     Enum.reduce(requested_attributes, [], fn requested_attribute, taken_attributes ->
-      case get_attribute(all_attributes, requested_attribute) do
+      case get_attribute(all_attributes, requested_attribute, expand_maps) do
+        attributes when is_list(attributes) -> taken_attributes ++ attributes
         {name, value} -> Keyword.put(taken_attributes, name, value)
         _ -> taken_attributes
       end
     end)
   end
 
-  defp get_attribute(attributes, [attribute_name | nested_keys]) do
+  defp get_attribute(attributes, attribute_name, true) do
+    requested_attribute = recursive_get_in(attributes, List.wrap(attribute_name))
+
+    if is_map(requested_attribute) do
+      requested_attribute
+      |> as_map()
+      |> Map.keys()
+      |> Enum.map(&get_attribute(attributes, List.wrap(attribute_name) ++ [&1], true))
+      |> Enum.reject(&(&1 == nil))
+      |> List.flatten()
+    else
+      get_attribute(attributes, attribute_name, false)
+    end
+  end
+
+  defp get_attribute(attributes, [attribute_name | nested_keys], false) do
     requested_obj = attributes |> Keyword.get(attribute_name) |> as_map()
 
     if value = recursive_get_in(requested_obj, nested_keys) do
@@ -44,7 +60,7 @@ defmodule OpenTelemetryDecorator.Attributes do
     end
   end
 
-  defp get_attribute(attributes, attribute_name) do
+  defp get_attribute(attributes, attribute_name, false) do
     if value = Keyword.get(attributes, attribute_name) do
       {derived_name(attribute_name), to_otlp_value(value)}
     end

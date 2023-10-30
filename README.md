@@ -126,6 +126,13 @@ config :open_telemetry_decorator, attr_joiner: "."
 ```
 
 Thanks to @benregn for the examples and inspiration for these two options!
+
+### Changing the default behavior for expanding nested maps
+By default, nested attributes need to be explicitly selected in the `with_span/3` macro (See additional examples to see this in action). However if you want the default behavior across your application to always expand variables that are maps/structs, you can specify the following config
+```elixir
+config :open_telemetry_decorator, expand_maps: true
+```
+
 <!-- MDOC -->
 
 ### Additional Examples
@@ -169,6 +176,20 @@ defmodule MyApp.Worker do
   use OpenTelemetryDecorator
 
   @decorate with_span("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
+  def do_work(arg1, arg2) do
+    total = some_calculation(arg1.count, arg2.count)
+    {:ok, total}
+  end
+end
+```
+
+Grab all nested map/struct properties:
+
+```elixir
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
+
+  @decorate with_span("my_app.worker.do_work", include: [:arg1, :arg2], expand_maps: true)
   def do_work(arg1, arg2) do
     total = some_calculation(arg1.count, arg2.count)
     {:ok, total}

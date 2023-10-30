@@ -45,6 +45,20 @@ defmodule OpenTelemetryDecoratorTest do
         end
       end
 
+      @decorate with_span("Example.find_expand", include: [:user], expand_maps: true)
+      def find_expand(id) do
+        _even = rem(id, 2) == 0
+        user = %{id: id, name: "my user"}
+
+        case id do
+          1 ->
+            {:ok, user}
+
+          error ->
+            {:error, error}
+        end
+      end
+
       @decorate with_span("Example.parse_params", include: [[:params, "id"]])
       def parse_params(params) do
         %{"id" => id} = params
@@ -110,6 +124,12 @@ defmodule OpenTelemetryDecoratorTest do
       Example.find(1)
       assert_receive {:span, span(name: "Example.find", attributes: attrs)}
       assert %{"app.user_name" => "my user"} = get_span_attributes(attrs)
+    end
+
+    test "handles nested attributes when expand_maps is set" do
+      Example.find_expand(1)
+      assert_receive {:span, span(name: "Example.find_expand", attributes: attrs)}
+      assert %{"user_id" => 1, "user_name" => "my user"} = get_span_attributes(attrs)
     end
 
     test "handles maps with string keys" do
