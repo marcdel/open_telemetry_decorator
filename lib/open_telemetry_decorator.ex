@@ -40,13 +40,14 @@ defmodule OpenTelemetryDecorator do
   """
   def with_span(span_name, opts \\ [], body, context) do
     include = Keyword.get(opts, :include, [])
+    kind = get_kind(opts)
     Validator.validate_args(span_name, include)
 
     quote location: :keep do
       require OpenTelemetry.Tracer, as: Tracer
       require OpenTelemetry.Span, as: Span
 
-      Tracer.with_span unquote(span_name) do
+      Tracer.with_span unquote(span_name), %{kind: unquote(kind)} do
         span_context = Tracer.current_span_ctx()
 
         input_params =
@@ -82,5 +83,12 @@ defmodule OpenTelemetryDecorator do
     e in ArgumentError ->
       target = "#{inspect(context.module)}.#{context.name}/#{context.arity} @decorate telemetry"
       reraise %ArgumentError{message: "#{target} #{e.message}"}, __STACKTRACE__
+  end
+
+  def get_kind(opts) do
+    case Keyword.get(opts, :kind, :internal) do
+      kind when kind in [:internal, :server, :client, :producer, :consumer] -> kind
+      _ -> :internal
+    end
   end
 end

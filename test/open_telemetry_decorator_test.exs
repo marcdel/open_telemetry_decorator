@@ -239,5 +239,60 @@ defmodule OpenTelemetryDecoratorTest do
       expected = %{"error" => "ruh roh!"}
       assert get_span_attributes(attrs) == expected
     end
+
+    test "can set the span.kind on the span" do
+      defmodule SpanKinds do
+        use OpenTelemetryDecorator
+
+        @decorate with_span("SpanKinds.producer", kind: :producer)
+        def producer() do
+          :ok
+        end
+
+        @decorate with_span("SpanKinds.consumer", kind: :consumer)
+        def consumer() do
+          :ok
+        end
+
+        @decorate with_span("SpanKinds.internal", kind: :internal)
+        def internal() do
+          :ok
+        end
+
+        @decorate with_span("SpanKinds.client", kind: :client)
+        def client() do
+          :ok
+        end
+
+        @decorate with_span("SpanKinds.server", kind: :server)
+        def server() do
+          :ok
+        end
+
+        @decorate with_span("SpanKinds.invalid", kind: :invalid)
+        def invalid() do
+          :ok
+        end
+      end
+
+      SpanKinds.producer()
+      assert_receive {:span, span(name: "SpanKinds.producer", kind: :producer)}
+
+      SpanKinds.consumer()
+      assert_receive {:span, span(name: "SpanKinds.consumer", kind: :consumer)}
+
+      SpanKinds.client()
+      assert_receive {:span, span(name: "SpanKinds.client", kind: :client)}
+
+      SpanKinds.server()
+      assert_receive {:span, span(name: "SpanKinds.server", kind: :server)}
+
+      SpanKinds.internal()
+      assert_receive {:span, span(name: "SpanKinds.internal", kind: :internal)}
+
+      # using an invalid span.kind will default to :internal
+      SpanKinds.invalid()
+      assert_receive {:span, span(name: "SpanKinds.invalid", kind: :internal)}
+    end
   end
 end
