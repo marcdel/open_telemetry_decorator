@@ -63,6 +63,21 @@ defmodule OpenTelemetryDecoratorTest do
 
       @decorate with_span("Example.with_error")
       def with_error, do: OpenTelemetryDecorator.Attributes.set(:error, "ruh roh!")
+
+      @decorate with_span("Example.with_attributes", attributes: [foo: "bar", baz: "qux"])
+      def with_attributes, do: :ok
+
+      @decorate with_span("Example.with_attrs_and_include",
+                  attributes: [foo: "bar", baz: "qux"],
+                  include: [:opts]
+                )
+      def with_attrs_and_include(opts), do: {:ok, opts}
+
+      @decorate with_span("Example.with_attrs_and_conflicts",
+                  attributes: [foo: "bar"],
+                  include: [:foo]
+                )
+      def with_attrs_and_conflicts(foo), do: {:ok, foo}
     end
 
     test "does not modify inputs or function result" do
@@ -293,6 +308,26 @@ defmodule OpenTelemetryDecoratorTest do
       # using an invalid span.kind will default to :internal
       SpanKinds.invalid()
       assert_receive {:span, span(name: "SpanKinds.invalid", kind: :internal)}
+    end
+
+    test "can set attributes on the span" do
+      Example.with_attributes()
+      assert_receive {:span, span(name: "Example.with_attributes", attributes: attrs)}
+      assert %{"app.baz" => "qux", "app.foo" => "bar"} == get_span_attributes(attrs)
+    end
+
+    test "can set attributes and input params on the span" do
+      Example.with_attrs_and_include(:include_me)
+      assert_receive {:span, span(name: "Example.with_attrs_and_include", attributes: attrs)}
+
+      assert %{"app.baz" => "qux", "app.foo" => "bar", "app.opts" => ":include_me"} ==
+               get_span_attributes(attrs)
+    end
+
+    test "can set attributes and input params on the span, where attributes win with conflicting names" do
+      Example.with_attrs_and_conflicts("not_bar")
+      assert_receive {:span, span(name: "Example.with_attrs_and_conflicts", attributes: attrs)}
+      assert %{"app.foo" => "bar"} == get_span_attributes(attrs)
     end
   end
 end

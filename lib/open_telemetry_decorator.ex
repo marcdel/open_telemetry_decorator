@@ -41,6 +41,8 @@ defmodule OpenTelemetryDecorator do
   def with_span(span_name, opts \\ [], body, context) do
     include = Keyword.get(opts, :include, [])
     kind = get_kind(opts)
+    decorator_attributes = Keyword.get(opts, :attributes, [])
+
     Validator.validate_args(span_name, include)
 
     quote location: :keep do
@@ -69,6 +71,7 @@ defmodule OpenTelemetryDecorator do
 
           # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
           Attributes.set(span_context, attrs)
+          Attributes.set(span_context, unquote(decorator_attributes))
 
           result
         rescue
