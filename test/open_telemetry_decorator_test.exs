@@ -260,32 +260,32 @@ defmodule OpenTelemetryDecoratorTest do
         use OpenTelemetryDecorator
 
         @decorate with_span("SpanKinds.producer", kind: :producer)
-        def producer() do
+        def producer do
           :ok
         end
 
         @decorate with_span("SpanKinds.consumer", kind: :consumer)
-        def consumer() do
+        def consumer do
           :ok
         end
 
         @decorate with_span("SpanKinds.internal", kind: :internal)
-        def internal() do
+        def internal do
           :ok
         end
 
         @decorate with_span("SpanKinds.client", kind: :client)
-        def client() do
+        def client do
           :ok
         end
 
         @decorate with_span("SpanKinds.server", kind: :server)
-        def server() do
+        def server do
           :ok
         end
 
         @decorate with_span("SpanKinds.invalid", kind: :invalid)
-        def invalid() do
+        def invalid do
           :ok
         end
       end
