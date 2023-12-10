@@ -25,3 +25,4 @@ open_telemetry_decorator-*.tar
 # Intellij nonsense
 .idea/
 *.iml
+.history/

@@ -1,5 +1,5 @@
 defmodule OpenTelemetryDecorator.AttributesTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use OtelHelper
 
   alias OpenTelemetryDecorator.Attributes
