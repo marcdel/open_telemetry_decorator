@@ -1,5 +1,38 @@
 # OpenTelemetryDecorator
 
+## v1.4.8
+- Adds a v2 of the attributes module and the ability to toggle between. The v2 version is more limited, but simpler and (hopefully) easier to understand.
+- Changes with_span to use start/end span
+
+
+Previously dyalizer would not error on invalid contracts for functions
+annotated with the decorator. presumably this was because the return
+actually happens in a closure.
+
+
+So, for example, the following code would pass dialyzer successfully
+
+    ```elixir
+    @spec hello :: {:ok, :asdf}
+    @decorate with_span("hello")
+    def hello do
+      :world
+    end
+    ````
+
+  After this change it fails as expected
+
+    ```shell
+    lib/spec_demo.ex:17:invalid_contract
+    The @spec for the function does not match the success typing of the function.
+
+    Function:
+    SpecDemo.hello/0
+
+    Success typing:
+    @spec hello() :: :world
+    ```
+
 ## v1.4.7
 - Fixes a bug causing the attribute prefix to be appended twice when using the include option
 - Update and remove unused dependencies
