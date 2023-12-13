@@ -46,36 +46,38 @@ defmodule OpenTelemetryDecorator do
       require OpenTelemetry.Tracer, as: Tracer
       require OpenTelemetry.Span, as: Span
 
-      Tracer.with_span unquote(span_name) do
-        span_context = Tracer.current_span_ctx()
+      span = Tracer.start_span(unquote(span_name))
+      Tracer.set_current_span(span)
 
-        input_params =
+      input_params =
+        Kernel.binding()
+        |> Attributes.get(unquote(include))
+        |> Keyword.delete(:result)
+
+      Attributes.set(input_params)
+
+      try do
+        result = unquote(body)
+
+        attrs =
           Kernel.binding()
+          |> Keyword.put(:result, result)
           |> Attributes.get(unquote(include))
-          |> Keyword.delete(:result)
+          |> Keyword.merge(input_params)
+          |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
 
-        Attributes.set(input_params)
+        # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
+        Attributes.set(span, attrs)
+        Span.end_span(span)
 
-        try do
-          result = unquote(body)
+        result
+      rescue
+        e ->
+          Tracer.record_exception(e)
+          Tracer.set_status(OpenTelemetry.status(:error))
+          Span.end_span(span)
 
-          attrs =
-            Kernel.binding()
-            |> Keyword.put(:result, result)
-            |> Attributes.get(unquote(include))
-            |> Keyword.merge(input_params)
-            |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
-
-          # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
-          Attributes.set(span_context, attrs)
-
-          result
-        rescue
-          e ->
-            Tracer.record_exception(e)
-            Tracer.set_status(OpenTelemetry.status(:error))
-            reraise e, __STACKTRACE__
-        end
+          reraise e, __STACKTRACE__
       end
     end
   rescue

@@ -1,5 +1,5 @@
 defmodule OpenTelemetryDecorator.ValidatorTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias OpenTelemetryDecorator.Validator
 

@@ -1,5 +1,5 @@
 defmodule OpenTelemetryDecoratorTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use OtelHelper
 
   doctest OpenTelemetryDecorator
