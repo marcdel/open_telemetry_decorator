@@ -1,8 +1,8 @@
-defmodule OpenTelemetryDecorator.AttributesTest do
+defmodule OpenTelemetryDecorator.AttributesV1Test do
   use ExUnit.Case, async: true
   use OtelHelper
 
-  alias OpenTelemetryDecorator.Attributes
+  alias OpenTelemetryDecorator.AttributesV1, as: Attributes
 
   setup [:otel_pid_reporter]
 

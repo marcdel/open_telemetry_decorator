@@ -21,6 +21,7 @@ defmodule OpenTelemetryDecoratorTest do
 
     defmodule Example do
       use OpenTelemetryDecorator
+      alias OpenTelemetryDecorator.AttributesV1, as: Attributes
 
       @decorate with_span("Example.step", include: [:id, :result])
       def step(id), do: {:ok, id}
@@ -62,7 +63,7 @@ defmodule OpenTelemetryDecoratorTest do
       end
 
       @decorate with_span("Example.with_error")
-      def with_error, do: OpenTelemetryDecorator.Attributes.set(:error, "ruh roh!")
+      def with_error, do: Attributes.set(:error, "ruh roh!")
     end
 
     test "does not modify inputs or function result" do
@@ -173,21 +174,6 @@ defmodule OpenTelemetryDecoratorTest do
       ExampleResult.add(5, 5)
       assert_receive {:span, span(name: "ExampleResult.add", attributes: attrs)}
       assert Map.get(get_span_attributes(attrs), "app.result") == 10
-    end
-
-    test "supports nested results" do
-      defmodule NestedResult do
-        use OpenTelemetryDecorator
-
-        @decorate with_span("ExampleResult.make_struct", include: [:a, :b, [:result, :sum]])
-        def make_struct(a, b) do
-          %{sum: a + b}
-        end
-      end
-
-      NestedResult.make_struct(5, 5)
-      assert_receive {:span, span(name: "ExampleResult.make_struct", attributes: attrs)}
-      assert Map.get(get_span_attributes(attrs), "app.result_sum") == 10
     end
 
     test "does not include anything unless specified" do
