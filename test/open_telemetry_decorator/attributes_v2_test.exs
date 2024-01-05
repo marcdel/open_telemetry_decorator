@@ -142,7 +142,6 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
   end
 
   describe "get" do
-
     test "handles flat attributes" do
       assert Attributes.get([id: 1, name: "jane"], [:id, :name]) == [id: 1, name: "jane"]
       assert Attributes.get([id: 1, name: "jane"], [:id]) == [id: 1]

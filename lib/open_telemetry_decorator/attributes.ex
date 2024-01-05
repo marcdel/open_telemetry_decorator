@@ -1,4 +1,8 @@
 defmodule OpenTelemetryDecorator.Attributes do
+  @moduledoc """
+  Wrapper to switch between v1 and v2
+  """
+
   def set(attributes) do
     attrs_module().set(attributes)
   end
