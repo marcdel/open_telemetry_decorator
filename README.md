@@ -109,6 +109,8 @@ defmodule MyApp.Worker do
 end
 ```
 
+## Configuration
+
 ### Prefixing Span Attributes
 Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically putting manual instrumentation under `app.`
 
@@ -126,9 +128,16 @@ config :open_telemetry_decorator, attr_joiner: "."
 ```
 
 Thanks to @benregn for the examples and inspiration for these two options!
-<!-- MDOC -->
 
-### Additional Examples
+### Switching to the v2 Attributes module
+
+I'm dropping support for specifying nested attributes in the `include` option, but will be adding the ability to implement a protocol that will let you define which keys to include as span attributes and what they should be called. In the meantime, I will default to the v1 version of the Attributes module, and expose a configuration option to opt in to the v2 version.
+
+```elixir
+config :open_telemetry_decorator, attrs_version: "v2"
+```
+
+## Additional Examples
 
 You can provide span attributes by specifying a list of variable names as atoms.
 
@@ -211,3 +220,5 @@ end
 * `mix credo` to suggest more idiomatic style for your code
 * `mix dialyzer` to find problems typing might reveal… albeit *slowly*
 * `mix docs` to generate documentation
+
+<!-- MDOC -->

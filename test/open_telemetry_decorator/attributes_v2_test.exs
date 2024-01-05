@@ -147,6 +147,11 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
       assert Attributes.get([id: 1, name: "jane"], [:id]) == [id: 1]
     end
 
+    test "does not handle nested attributes" do
+      attrs = Attributes.get([obj: %{id: 1}], [[:obj, :id]])
+      assert attrs == []
+    end
+
     test "when target value is valid OTLP type, use it" do
       assert [{:val, 42.42}] == Attributes.get([val: 42.42], [:val])
       assert [{:val, true}] == Attributes.get([val: true], [:val])
