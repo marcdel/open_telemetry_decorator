@@ -64,6 +64,15 @@ defmodule OpenTelemetryDecoratorTest do
 
       @decorate with_span("Example.with_error")
       def with_error, do: Attributes.set(:error, "ruh roh!")
+
+      @decorate with_span("Example.with_attrs", attrs: [static: "value"])
+      def with_attrs, do: :ok
+
+      @decorate with_span("Example.attrs_and_include", attrs: [static: "value"], include: [:id])
+      def attrs_and_include(id), do: {:ok, id}
+
+      @decorate with_span("Example.conflicting_attrs", attrs: [name: "bob"], include: [:name])
+      def conflicting_attrs(name), do: {:ok, name}
     end
 
     test "does not modify inputs or function result" do
@@ -180,6 +189,24 @@ defmodule OpenTelemetryDecoratorTest do
       Example.no_include(include_me: "nope")
       assert_receive {:span, span(name: "Example.no_include", attributes: attrs)}
       assert %{} == get_span_attributes(attrs)
+    end
+
+    test "can set arbitrary, static attributes on the span" do
+      Example.with_attrs()
+      assert_receive {:span, span(name: "Example.with_attrs", attributes: attrs)}
+      assert %{"app.static" => "value"} == get_span_attributes(attrs)
+    end
+
+    test "can set static and dynamic attributes on the same span" do
+      Example.attrs_and_include(12_345)
+      assert_receive {:span, span(name: "Example.attrs_and_include", attributes: attrs)}
+      assert %{"app.static" => "value", "app.id" => 12_345} == get_span_attributes(attrs)
+    end
+
+    test "can set attributes and input params on the span, where attributes win with conflicting names" do
+      Example.conflicting_attrs("jane")
+      assert_receive {:span, span(name: "Example.conflicting_attrs", attributes: attrs)}
+      assert %{"app.name" => "bob"} == get_span_attributes(attrs)
     end
 
     test "records an exception event" do

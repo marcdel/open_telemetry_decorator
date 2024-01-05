@@ -78,6 +78,20 @@ defmodule MyApp.Worker do
 end
 ```
 
+You can also specify arbitrary static span attributes at compile time with the `attrs` option.
+
+```elixir
+defmodule MyApp.Worker do
+  use OpenTelemetryDecorator
+
+  @decorate with_span("worker.do_work", attrs: [cool: "stuff"])
+  def do_work(args) do
+    # ...doing work
+  end
+end
+
+```
+
 The Attributes module includes a helper for setting additional attributes outside of the `include` option. Attributes added in either a `set` call or in the `include` that are not [primitive OTLP values](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/common/README.md#attribute) will be converted to strings with `Kernel.inspect/1`.
 
 ```elixir

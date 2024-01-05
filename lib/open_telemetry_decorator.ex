@@ -40,6 +40,8 @@ defmodule OpenTelemetryDecorator do
   """
   def with_span(span_name, opts \\ [], body, context) do
     include = Keyword.get(opts, :include, [])
+    static_attrs = Keyword.get(opts, :attrs, [])
+
     Validator.validate_args(span_name, include)
 
     quote location: :keep do
@@ -64,10 +66,12 @@ defmodule OpenTelemetryDecorator do
           |> Keyword.put(:result, result)
           |> Attributes.get(unquote(include))
           |> Keyword.merge(input_params)
+          |> Keyword.merge(unquote(static_attrs))
           |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
 
-        # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
+        # Called functions can mess up Tracer's current span context, so we include it in the call to set.
         Attributes.set(span, attrs)
+
         Span.end_span(span)
 
         result
