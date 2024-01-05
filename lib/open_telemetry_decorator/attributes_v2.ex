@@ -44,6 +44,7 @@ defmodule OpenTelemetryDecorator.AttributesV2 do
     |> prefix_name()
   end
 
+  # The error attribute is meaningful in the context of the span, so we don't want to prefix it
   defp prefix_name(:error), do: :error
   defp prefix_name("error"), do: :error
 

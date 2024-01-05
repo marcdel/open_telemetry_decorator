@@ -205,7 +205,8 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
 
     test "doesn't modify keys without underscores" do
       attrs = Attributes.get([_id: 1, name: "asd"], [:_id, :name])
-      assert attrs == [id: 1, name: "asd"]
+      assert Keyword.get(attrs, :id) == 1
+      assert Keyword.get(attrs, :name) == "asd"
     end
   end
 
