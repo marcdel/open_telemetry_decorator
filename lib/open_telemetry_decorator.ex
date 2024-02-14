@@ -42,11 +42,19 @@ defmodule OpenTelemetryDecorator do
     include = Keyword.get(opts, :include, [])
     Validator.validate_args(span_name, include)
 
+    dynamic_links = Keyword.get(opts, :links, [])
+
     quote location: :keep do
       require OpenTelemetry.Tracer, as: Tracer
       require OpenTelemetry.Span, as: Span
 
-      span = Tracer.start_span(unquote(span_name))
+      links =
+        Kernel.binding()
+        |> Enum.into(%{})
+        |> Map.take(unquote(dynamic_links))
+        |> Map.values()
+
+      span = Tracer.start_span(unquote(span_name), links: links)
       Tracer.set_current_span(span)
 
       input_params =

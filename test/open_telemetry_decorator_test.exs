@@ -2,6 +2,8 @@ defmodule OpenTelemetryDecoratorTest do
   use ExUnit.Case, async: false
   use OtelHelper
 
+  require OpenTelemetry.Tracer, as: Tracer
+
   doctest OpenTelemetryDecorator
 
   setup [:otel_pid_reporter]
@@ -64,6 +66,9 @@ defmodule OpenTelemetryDecoratorTest do
 
       @decorate with_span("Example.with_error")
       def with_error, do: Attributes.set(:error, "ruh roh!")
+
+      @decorate with_span("Example.with_link", links: [:_span_link])
+      def with_link(_span_link), do: :ok
     end
 
     test "does not modify inputs or function result" do
@@ -99,6 +104,20 @@ defmodule OpenTelemetryDecoratorTest do
                       )}
 
       assert %{"app.id" => 2} = get_span_attributes(attrs)
+    end
+
+    test "can manually link spans" do
+      related_span = Tracer.start_span("related-stuff")
+      Tracer.end_span(related_span)
+
+      span_ctx(trace_id: linked_trace_id, span_id: linked_span_id) = related_span
+
+      related_span
+      |> OpenTelemetry.link()
+      |> Example.with_link()
+
+      assert_receive {:span, span(name: "Example.with_link", links: links)}
+      assert [link(trace_id: ^linked_trace_id, span_id: ^linked_span_id)] = get_span_links(links)
     end
 
     test "handles simple attributes" do
@@ -190,7 +209,7 @@ defmodule OpenTelemetryDecoratorTest do
         e ->
           assert Exception.format(:error, e, __STACKTRACE__) =~ "File.read!/1"
           assert_receive {:span, span(name: "Example.with_exception", events: events)}
-          assert [{:event, _, "exception", _}] = get_span_events(events)
+          assert [event(name: "exception")] = get_span_events(events)
       end
     end
 
