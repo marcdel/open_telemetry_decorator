@@ -1,5 +1,27 @@
 # OpenTelemetryDecorator
 
+## v1.4.9
+Adds the ability to pass links to a function decorated with `with_span` or `trace`. This is done by passing a `links` option to the decorator.
+The `links` option should be the atom names of variables containing linked spans. You can create a link to a span with `OpenTelemetry.link/1`
+
+e.g.
+```elixir
+require OpenTelemetry.Tracer, as: Tracer
+
+def parent do
+  parent_span = Tracer.start_span("parent")
+  link = OpenTelemetry.link(parent_span)
+
+  child(link)
+end
+
+@decorate with_span("child", links: [:parent_link])
+def child(parent_link) do
+  # ...
+  :ok
+end
+```
+
 ## v1.4.8
 - Adds a v2 of the attributes module and the ability to toggle between. The v2 version is more limited, but simpler and (hopefully) easier to understand.
 - Changes with_span to use start/end span
@@ -12,26 +34,26 @@ actually happens in a closure.
 
 So, for example, the following code would pass dialyzer successfully
 
-    ```elixir
-    @spec hello :: {:ok, :asdf}
-    @decorate with_span("hello")
-    def hello do
-      :world
-    end
-    ````
+```elixir
+@spec hello :: {:ok, :asdf}
+@decorate with_span("hello")
+def hello do
+  :world
+end
+````
 
-  After this change it fails as expected
+After this change it fails as expected
 
-    ```shell
-    lib/spec_demo.ex:17:invalid_contract
-    The @spec for the function does not match the success typing of the function.
+```shell
+lib/spec_demo.ex:17:invalid_contract
+The @spec for the function does not match the success typing of the function.
 
-    Function:
-    SpecDemo.hello/0
+Function:
+SpecDemo.hello/0
 
-    Success typing:
-    @spec hello() :: :world
-    ```
+Success typing:
+@spec hello() :: :world
+```
 
 ## v1.4.7
 - Fixes a bug causing the attribute prefix to be appended twice when using the include option
