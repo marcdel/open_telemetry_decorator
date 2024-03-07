@@ -76,16 +76,16 @@ defmodule OpenTelemetryDecorator do
 
         # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
         Attributes.set(span, attrs)
-        Span.end_span(span)
 
         result
       rescue
         e ->
+          Tracer.set_current_span(span)
           Tracer.record_exception(e)
           Tracer.set_status(OpenTelemetry.status(:error))
-          Span.end_span(span)
-
           reraise e, __STACKTRACE__
+      after
+        Span.end_span(span)
       end
     end
   rescue

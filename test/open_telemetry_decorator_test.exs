@@ -58,6 +58,11 @@ defmodule OpenTelemetryDecoratorTest do
       @decorate with_span("Example.no_include")
       def no_include(opts), do: {:ok, opts}
 
+      @decorate with_span("Example.exception_parent")
+      def exception_parent(child_fn) do
+        child_fn.()
+      end
+
       @decorate with_span("Example.with_exception", include: [:file_name, :body_var])
       def with_exception(file_name) do
         body_var = "hello!"
@@ -235,6 +240,21 @@ defmodule OpenTelemetryDecoratorTest do
         _ ->
           assert_receive {:span, span(name: "Example.with_exception", status: status)}
           assert {:status, :error, ""} = status
+      end
+    end
+
+    test "reraise causes the parent's status to be set to error" do
+      try do
+        Example.exception_parent(fn ->
+          Example.with_exception("fake file")
+        end)
+      rescue
+        _ ->
+          assert_receive {:span,
+                          span(name: "Example.with_exception", status: {:status, :error, ""})}
+
+          assert_receive {:span,
+                          span(name: "Example.exception_parent", status: {:status, :error, ""})}
       end
     end
 
