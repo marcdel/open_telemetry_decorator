@@ -2,6 +2,7 @@
 
 [![Build status badge](https://github.com/marcdel/open_telemetry_decorator/workflows/Elixir%20CI/badge.svg)](https://github.com/marcdel/open_telemetry_decorator/actions)
 [![Hex version badge](https://img.shields.io/hexpm/v/open_telemetry_decorator.svg)](https://hex.pm/packages/open_telemetry_decorator)
+[![Hex downloads badge](https://img.shields.io/hexpm/dt/open_telemetry_decorator.svg)](https://hex.pm/packages/open_telemetry_decorator)
 
 <!-- MDOC -->
 <!-- INCLUDE -->
