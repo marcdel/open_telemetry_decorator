@@ -1,5 +1,11 @@
 # OpenTelemetryDecorator
 
+## v1.4.10
+Addresses an issue setting error status on parent spans after exception
+
+When two functions that are decorated with the with_span function are nested and the child throws, the current span was not being set back to the parent as expected.
+Calling Tracer.set_status would attempt to set the status on the child span which has been closed at that point and fail meaning the parent's status would be undefined.
+
 ## v1.4.9
 Adds the ability to pass links to a function decorated with `with_span` or `trace`. This is done by passing a `links` option to the decorator.
 The `links` option should be the atom names of variables containing linked spans. You can create a link to a span with `OpenTelemetry.link/1`
