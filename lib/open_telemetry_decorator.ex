@@ -54,6 +54,7 @@ defmodule OpenTelemetryDecorator do
         |> Map.take(unquote(dynamic_links))
         |> Map.values()
 
+      parent_span = Tracer.current_span_ctx()
       span = Tracer.start_span(unquote(span_name), links: links)
       Tracer.set_current_span(span)
 
@@ -80,12 +81,12 @@ defmodule OpenTelemetryDecorator do
         result
       rescue
         e ->
-          Tracer.set_current_span(span)
           Tracer.record_exception(e)
           Tracer.set_status(OpenTelemetry.status(:error))
           reraise e, __STACKTRACE__
       after
         Span.end_span(span)
+        Tracer.set_current_span(parent_span)
       end
     end
   rescue
