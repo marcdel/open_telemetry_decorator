@@ -1,5 +1,11 @@
 # OpenTelemetryDecorator
 
+## v1.4.11
+Clean up after ourselves instead of right before setting the status
+
+I didn't realize `Span.end_span` does _not_ change the current span, which is why when the parent catches the reraise it had the wrong span as the current span.
+We're starting the span in a place where we can hold on to it so we can manually update the current span to the parent so that callers that _aren't_ using the decorator have the correct current span.
+
 ## v1.4.10
 Addresses an issue setting error status on parent spans after exception
 
