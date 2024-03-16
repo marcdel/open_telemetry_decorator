@@ -85,7 +85,7 @@ defmodule OpenTelemetryDecorator do
           Tracer.set_status(OpenTelemetry.status(:error))
           reraise e, __STACKTRACE__
       after
-        Span.end_span(span)
+        Tracer.end_span()
         Tracer.set_current_span(parent_span)
       end
     end

@@ -1,12 +1,10 @@
 defmodule OpenTelemetryDecoratorTest do
   use ExUnit.Case, async: false
-  use OtelHelper
+  use O11y.TestHelper
 
   require OpenTelemetry.Tracer, as: Tracer
 
   doctest OpenTelemetryDecorator
-
-  setup [:otel_pid_reporter]
 
   describe "with_span" do
     setup do
@@ -83,32 +81,16 @@ defmodule OpenTelemetryDecoratorTest do
     test "automatically links spans" do
       Example.workflow(2)
 
-      assert_receive {:span,
-                      span(
-                        name: "Example.workflow",
-                        trace_id: parent_trace_id,
-                        attributes: attrs
-                      )}
+      workflow_span = assert_span("Example.workflow")
+      assert %{"app.count" => 2} = workflow_span.attributes
 
-      assert %{"app.count" => 2} = get_span_attributes(attrs)
+      step_span = assert_span("Example.step")
+      assert workflow_span.span_id == step_span.parent_span_id
+      assert %{"app.id" => 1} = step_span.attributes
 
-      assert_receive {:span,
-                      span(
-                        name: "Example.step",
-                        trace_id: ^parent_trace_id,
-                        attributes: attrs
-                      )}
-
-      assert %{"app.id" => 1} = get_span_attributes(attrs)
-
-      assert_receive {:span,
-                      span(
-                        name: "Example.step",
-                        trace_id: ^parent_trace_id,
-                        attributes: attrs
-                      )}
-
-      assert %{"app.id" => 2} = get_span_attributes(attrs)
+      step_span = assert_span("Example.step")
+      assert workflow_span.span_id == step_span.parent_span_id
+      assert %{"app.id" => 2} = step_span.attributes
     end
 
     test "can manually link spans" do
@@ -121,50 +103,57 @@ defmodule OpenTelemetryDecoratorTest do
       |> OpenTelemetry.link()
       |> Example.with_link()
 
-      assert_receive {:span, span(name: "Example.with_link", links: links)}
-      assert [link(trace_id: ^linked_trace_id, span_id: ^linked_span_id)] = get_span_links(links)
+      span = assert_span("Example.with_link")
+      assert [%{trace_id: ^linked_trace_id, span_id: ^linked_span_id}] = span.links
     end
 
     test "handles simple attributes" do
       Example.find(1)
-      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert %{"app.id" => 1} = get_span_attributes(attrs)
+
+      span = assert_span("Example.find")
+      assert %{"app.id" => 1} = span.attributes
     end
 
     test "handles nested attributes" do
       Example.find(1)
-      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert %{"app.user_name" => "my user"} = get_span_attributes(attrs)
+
+      span = assert_span("Example.find")
+      assert %{"app.user_name" => "my user"} = span.attributes
     end
 
     test "handles maps with string keys" do
       Example.parse_params(%{"id" => 12})
-      assert_receive {:span, span(name: "Example.parse_params", attributes: attrs)}
-      assert %{"app.params_id" => 12} = get_span_attributes(attrs)
+
+      span = assert_span("Example.parse_params")
+      assert %{"app.params_id" => 12} = span.attributes
     end
 
     test "handles handles underscored attributes" do
       Example.find(2)
-      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert %{"app.even" => true} = get_span_attributes(attrs)
+
+      span = assert_span("Example.find")
+      assert %{"app.even" => true} = span.attributes
     end
 
     test "converts atoms to strings" do
       Example.step(:two)
-      assert_receive {:span, span(name: "Example.step", attributes: attrs)}
-      assert %{"app.id" => ":two"} = get_span_attributes(attrs)
+
+      span = assert_span("Example.step")
+      assert %{"app.id" => ":two"} = span.attributes
     end
 
     test "does not include result unless asked for" do
       Example.numbers(1000)
-      assert_receive {:span, span(name: "Example.numbers", attributes: attrs)}
-      assert Map.has_key?(get_span_attributes(attrs), :result) == false
+
+      span = assert_span("Example.numbers")
+      refute Map.has_key?(span.attributes, :result)
     end
 
-    test "does not include variables not in scope when the function exists" do
+    test "does not include variables not in scope when the function exits" do
       Example.find(098)
-      assert_receive {:span, span(name: "Example.find", attributes: attrs)}
-      assert Map.has_key?(get_span_attributes(attrs), "error") == false
+
+      span = assert_span("Example.find")
+      refute Map.has_key?(span.attributes, "error")
     end
 
     test "does not overwrite input parameters" do
@@ -181,8 +170,8 @@ defmodule OpenTelemetryDecoratorTest do
 
       assert {:ok, 3} = OverwriteExample.param_override(1, 1)
 
-      assert_receive {:span, span(name: "param_override", attributes: attrs)}
-      assert Map.get(get_span_attributes(attrs), "app.x") == 1
+      span = assert_span("param_override")
+      assert %{"app.x" => 1, "app.y" => 1} = span.attributes
     end
 
     test "overwrites the default result value" do
@@ -196,14 +185,16 @@ defmodule OpenTelemetryDecoratorTest do
       end
 
       ExampleResult.add(5, 5)
-      assert_receive {:span, span(name: "ExampleResult.add", attributes: attrs)}
-      assert Map.get(get_span_attributes(attrs), "app.result") == 10
+
+      span = assert_span("ExampleResult.add")
+      %{"app.result" => 10} = span.attributes
     end
 
     test "does not include anything unless specified" do
       Example.no_include(include_me: "nope")
-      assert_receive {:span, span(name: "Example.no_include", attributes: attrs)}
-      assert %{} == get_span_attributes(attrs)
+
+      span = assert_span("Example.no_include")
+      assert %{} == span.attributes
     end
 
     test "records an exception event" do
@@ -213,8 +204,8 @@ defmodule OpenTelemetryDecoratorTest do
       rescue
         e ->
           assert Exception.format(:error, e, __STACKTRACE__) =~ "File.read!/1"
-          assert_receive {:span, span(name: "Example.with_exception", events: events)}
-          assert [event(name: "exception")] = get_span_events(events)
+          span = assert_span("Example.with_exception")
+          assert [%{name: "exception"}] = span.events
       end
     end
 
@@ -224,9 +215,8 @@ defmodule OpenTelemetryDecoratorTest do
         flunk("Should have re-raised a File.read!/1 exception")
       rescue
         _ ->
-          expected = %{"app.file_name" => "fake file"}
-          assert_receive {:span, span(name: "Example.with_exception", attributes: attrs)}
-          assert get_span_attributes(attrs) == expected
+          span = assert_span("Example.with_exception")
+          %{"app.file_name" => "fake file"} = span.attributes
       end
     end
 
@@ -238,8 +228,9 @@ defmodule OpenTelemetryDecoratorTest do
         Example.with_exception("fake file")
       rescue
         _ ->
-          assert_receive {:span, span(name: "Example.with_exception", status: status)}
-          assert {:status, :error, ""} = status
+          span = assert_span("Example.with_exception")
+          assert span.status.code == :error
+          assert span.status.message =~ ""
       end
     end
 
@@ -250,19 +241,21 @@ defmodule OpenTelemetryDecoratorTest do
         end)
       rescue
         _ ->
-          assert_receive {:span,
-                          span(name: "Example.with_exception", status: {:status, :error, ""})}
+          span = assert_span("Example.with_exception")
+          assert span.status.code == :error
+          assert span.status.message =~ ""
 
-          assert_receive {:span,
-                          span(name: "Example.exception_parent", status: {:status, :error, ""})}
+          span = assert_span("Example.exception_parent")
+          assert span.status.code == :error
+          assert span.status.message =~ ""
       end
     end
 
     test "can set the error attribute on the span" do
       Example.with_error()
-      assert_receive {:span, span(name: "Example.with_error", attributes: attrs)}
-      expected = %{"error" => "ruh roh!"}
-      assert get_span_attributes(attrs) == expected
+
+      span = assert_span("Example.with_error")
+      %{"error" => "ruh roh!"} = span.attributes
     end
   end
 end
