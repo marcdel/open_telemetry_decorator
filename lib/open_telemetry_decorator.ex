@@ -54,9 +54,8 @@ defmodule OpenTelemetryDecorator do
         |> Map.take(unquote(dynamic_links))
         |> Map.values()
 
-      parent_span = Tracer.current_span_ctx()
-      span = Tracer.start_span(unquote(span_name), links: links)
-      Tracer.set_current_span(span)
+      parent_span = O11y.start_span(unquote(span_name), links: links)
+      new_span = Tracer.current_span_ctx()
 
       input_params =
         Kernel.binding()
@@ -68,25 +67,23 @@ defmodule OpenTelemetryDecorator do
       try do
         result = unquote(body)
 
-        attrs =
-          Kernel.binding()
-          |> Keyword.put(:result, result)
-          |> Attributes.get(unquote(include))
-          |> Keyword.merge(input_params)
-          |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
-
         # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
-        Attributes.set(span, attrs)
+        Tracer.set_current_span(new_span)
+
+        Kernel.binding()
+        |> Keyword.put(:result, result)
+        |> Attributes.get(unquote(include))
+        |> Keyword.merge(input_params)
+        |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
+        |> Attributes.set()
 
         result
       rescue
         e ->
-          Tracer.record_exception(e)
-          Tracer.set_status(OpenTelemetry.status(:error))
+          O11y.record_exception(e)
           reraise e, __STACKTRACE__
       after
-        Tracer.end_span()
-        Tracer.set_current_span(parent_span)
+        O11y.end_span(parent_span)
       end
     end
   rescue
