@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.4.12
+- Updates decorator to use the o11y version of start and end span
+- Refactor tests to use `O11y.TestHelper` and the available structs for asserting on span conents.
+
 ## v1.4.11
 Clean up after ourselves instead of right before setting the status
 
