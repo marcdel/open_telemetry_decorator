@@ -257,5 +257,38 @@ defmodule OpenTelemetryDecoratorTest do
       span = assert_span("Example.with_error")
       %{"error" => "ruh roh!"} = span.attributes
     end
+
+    test "handles current and parent span correctly" do
+      defmodule CurrentSpanExample do
+        use OpenTelemetryDecorator
+
+        @decorate with_span("CurrentSpanExample.outer")
+        def outer do
+          before_ctx = Tracer.current_span_ctx()
+          inner(before_ctx)
+          after_ctx = Tracer.current_span_ctx()
+
+          assert before_ctx == after_ctx
+        end
+
+        @decorate with_span("CurrentSpanExample.inner")
+        def inner(parent_ctx) do
+          assert parent_ctx != Tracer.current_span_ctx()
+
+          {:span_ctx, _, _, 1,
+           {:tracestate, []}, true, false, true,
+           {:otel_span_ets, some_fn}} = Tracer.current_span_ctx()
+
+          some_fn.(nil) |> dbg()
+        end
+      end
+
+      CurrentSpanExample.outer()
+
+      parent_span = assert_span("CurrentSpanExample.outer")
+      child_span = assert_span("CurrentSpanExample.inner")
+
+      assert parent_span.span_id == child_span.parent_span_id
+    end
   end
 end

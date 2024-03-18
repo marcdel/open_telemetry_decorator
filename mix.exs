@@ -44,7 +44,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       {:opentelemetry_exporter, "~> 1.7", only: :test},
       {:opentelemetry_api, "~> 1.3"},
       {:opentelemetry, "~> 1.4", only: :test, runtime: false},
-      {:o11y, path: "../o11y", override: true}
+      {:o11y, "~> 0.1"}
     ]
   end
 
