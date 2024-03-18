@@ -274,12 +274,6 @@ defmodule OpenTelemetryDecoratorTest do
         @decorate with_span("CurrentSpanExample.inner")
         def inner(parent_ctx) do
           assert parent_ctx != Tracer.current_span_ctx()
-
-          {:span_ctx, _, _, 1,
-           {:tracestate, []}, true, false, true,
-           {:otel_span_ets, some_fn}} = Tracer.current_span_ctx()
-
-          some_fn.(nil) |> dbg()
         end
       end
 
