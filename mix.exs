@@ -1,7 +1,7 @@
 defmodule OpenTelemetryDecorator.MixProject do
   use Mix.Project
 
-  @version "1.4.12"
+  @version "1.4.13"
   @github_page "https://github.com/marcdel/open_telemetry_decorator"
 
   def project do

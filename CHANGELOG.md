@@ -1,5 +1,8 @@
 # OpenTelemetryDecorator
 
+## v1.4.13
+- Updates O11y dependency to v0.1.4 to fix an issue with setting error messages on spans.
+
 ## v1.4.12
 - Updates decorator to use the o11y version of start and end span
 - Refactor tests to use `O11y.TestHelper` and the available structs for asserting on span conents.
