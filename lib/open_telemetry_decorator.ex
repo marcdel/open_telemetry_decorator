@@ -4,10 +4,10 @@ defmodule OpenTelemetryDecorator do
   @moduledoc "README.md"
              |> File.read!()
              |> String.split("<!-- MDOC -->")
-             |> Enum.filter(&(&1 =~ ~R{<!\-\-\ INCLUDE\ \-\->}))
+             |> Enum.filter(&(&1 =~ ~r/<!\-\-\ INCLUDE\ \-\->/))
              |> Enum.join("\n")
              # compensate for anchor id differences between ExDoc and GitHub
-             |> (&Regex.replace(~R{\(\#\K(?=[a-z][a-z0-9-]+\))}, &1, "module-")).()
+             |> (&Regex.replace(~r/\(\#\K(?=[a-z][a-z0-9-]+\))/, &1, "module-")).()
 
   use Decorator.Define, with_span: 1, with_span: 2, trace: 1, trace: 2
 
