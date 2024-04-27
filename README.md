@@ -17,7 +17,7 @@ def deps do
   [
     {:opentelemetry, "~> 1.4"},
     {:opentelemetry_exporter, "~> 1.7"},
-    {:open_telemetry_decorator, "~> 1.4"}
+    {:open_telemetry_decorator, "~> 1.5"}
   ]
 end
 ```
