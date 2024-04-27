@@ -1,5 +1,15 @@
 defmodule OpenTelemetryDecorator.AttributesV1 do
-  @moduledoc false
+  @moduledoc deprecated: """
+             You can switch to the v2 attributes module via config. This will become the default in the future.
+             The biggest change is that v2 no longer supports nested attributes in the includes list. In most cases
+             you would use this, you can now derive the O11y.SpanAttributes protocol and pass the top level object.
+             In cases where you need more flexibility, you can use O11y.set_attribute/2 directly in the function body.
+
+             ```elixir
+             config :open_telemetry_decorator, attrs_version: "v2"
+             ```
+             """
+
   require OpenTelemetry.Tracer, as: Tracer
   require OpenTelemetry.Span, as: Span
 

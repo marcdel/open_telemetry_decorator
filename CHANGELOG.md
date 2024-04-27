@@ -1,5 +1,36 @@
 # OpenTelemetryDecorator
 
+## v1.5.0
+- 🚨 The decorator now uses the `O11y.set_attribute(s)` functions to set attributes on spans. This means that the attribute processing logic that was here previously has been migrated there. However, there are some backwards incompatible changes listed below.
+- 🚨 The decorator no longer supports nested attributes in the `include` option. The `O11y` `set_attribute` and `set_attributes` functions should now be used to handle more complex attribute specifications. The `SpanAttributes` protocol in particular is what I recommend if you need to extract a subset of fields from an object. The example below will add only `user.id` and `user.name` to the span attributes.
+
+```elixir
+defmodule User do
+  @derive {O11y.SpanAttributes, only: [:id, :name]}
+  defstruct [:id, :name, :email, :password]
+end
+
+defmodule UserFactory do
+  use OpenTelemetryDecorator
+
+  @decorate with_span("UserFactory.create", include: [:user])
+  def create() do
+    user = %User{id: 1, name: "Bob", email: "bob@work.com", password: "secret"}
+    {:ok, user}
+  end
+end
+```
+- 🚨 Changes the default attrs_version to "v2". You can override this with `config :open_telemetry_decorator, attrs_version: "v1"`, but that only affects usages of `Attribtues` directly.
+- ⚠️ Changes AttributesV2 to use the `O11y.set_attribute(s)` functions. The attribute processing logic that was here previously has been migrated there. However, there are some backwards incompatible changes listed below.
+- ⚠️ Changed functionality: the `error` attribute is no longer treated differently from other attributes. It will be namespaced or prefixed as expected. If you're using Honeycomb this field will be automatically derived from the span's status_code, so you don't need to (and probably shouldn't) set it manually. Instead, use `O11y.set_error/1` to set the status code to "error" and message to the provided (string or exception) value.
+- ⚠️ Changed functionality: maps and structs given to `Attributes.set/2` will be flattened and prefixed with the given name. e.g.
+```elixir
+params = %{key: "value"}
+Attributes.set(:params, params)
+# Becomes
+%{"params.key" => "value"}
+```
+
 ## v1.4.13
 - Updates O11y dependency to v0.1.4 to fix an issue with setting error messages on spans.
 

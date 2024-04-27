@@ -19,6 +19,11 @@ defmodule OpenTelemetryDecoratorTest do
       on_exit(fn -> Application.put_env(:open_telemetry_decorator, :attr_prefix, prev) end)
     end
 
+    defmodule User do
+      @derive {O11y.SpanAttributes, only: [:id, :name]}
+      defstruct [:id, :name]
+    end
+
     defmodule Example do
       use OpenTelemetryDecorator
       alias OpenTelemetryDecorator.AttributesV1, as: Attributes
@@ -32,17 +37,14 @@ defmodule OpenTelemetryDecoratorTest do
       @decorate with_span("Example.numbers", include: [:up_to])
       def numbers(up_to), do: [1..up_to]
 
-      @decorate with_span("Example.find", include: [:id, [:user, :name], :error, :_even, :result])
+      @decorate with_span("Example.find", include: [:id, :user, :error, :_even, :result])
       def find(id) do
         _even = rem(id, 2) == 0
-        user = %{id: id, name: "my user"}
+        user = %User{id: id, name: "my user"}
 
         case id do
-          1 ->
-            {:ok, user}
-
-          error ->
-            {:error, error}
+          1 -> {:ok, user}
+          error -> {:error, error}
         end
       end
 
@@ -114,18 +116,22 @@ defmodule OpenTelemetryDecoratorTest do
       assert %{"app.id" => 1} = span.attributes
     end
 
-    test "handles nested attributes" do
+    test "handles structs" do
       Example.find(1)
 
       span = assert_span("Example.find")
-      assert %{"app.user_name" => "my user"} = span.attributes
+
+      assert %{
+               "app.user.id" => 1,
+               "app.user.name" => "my user"
+             } = span.attributes
     end
 
     test "handles maps with string keys" do
       Example.parse_params(%{"id" => 12})
 
       span = assert_span("Example.parse_params")
-      assert %{"app.params_id" => 12} = span.attributes
+      assert %{"app.params.id" => 12} = span.attributes
     end
 
     test "handles handles underscored attributes" do
@@ -133,13 +139,6 @@ defmodule OpenTelemetryDecoratorTest do
 
       span = assert_span("Example.find")
       assert %{"app.even" => true} = span.attributes
-    end
-
-    test "converts atoms to strings" do
-      Example.step(:two)
-
-      span = assert_span("Example.step")
-      assert %{"app.id" => ":two"} = span.attributes
     end
 
     test "does not include result unless asked for" do

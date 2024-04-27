@@ -15,8 +15,8 @@ Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We inc
 ```elixir
 def deps do
   [
-    {:opentelemetry, "~> 1.2"},
-    {:opentelemetry_exporter, "~> 1.4"},
+    {:opentelemetry, "~> 1.4"},
+    {:opentelemetry_exporter, "~> 1.7"},
     {:open_telemetry_decorator, "~> 1.4"}
   ]
 end
@@ -29,22 +29,11 @@ https://github.com/open-telemetry/opentelemetry-erlang/tree/main/apps/openteleme
 
 `config/runtime.exs`
 ```elixir
-api_key = Map.fetch!(System.get_env(), "HONEYCOMB_KEY")
+api_key = System.fetch_env!("HONEYCOMB_KEY")
 
-config :opentelemetry, :processors,
-  otel_batch_processor: %{
-    exporter:
-      {:opentelemetry_exporter,
-       %{
-         protocol: :grpc,
-         headers: [
-           {'x-honeycomb-team', api_key},
-           {'x-honeycomb-dataset', 'YOUR_APP_NAME'}
-         ],
-         endpoints: [{:https, 'api.honeycomb.io', 443, []}]
-       }}
-  }
-
+config :opentelemetry_exporter,
+  otlp_endpoint: "https://api.honeycomb.io:443",
+  otlp_headers: [{"x-honeycomb-team", api_key}]
 ```
 
 ## Usage
@@ -79,18 +68,17 @@ defmodule MyApp.Worker do
 end
 ```
 
-The Attributes module includes a helper for setting additional attributes outside of the `include` option. Attributes added in either a `set` call or in the `include` that are not [primitive OTLP values](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/common/README.md#attribute) will be converted to strings with `Kernel.inspect/1`.
+The O11y module includes a helper for setting additional attributes outside of the `include` option. Attributes added in either a `set` call or in the `include` that are not [primitive OTLP values](https://github.com/open-telemetry/opentelemetry-erlang/blob/main/apps/opentelemetry_api/src/opentelemetry.erl#L111) will be converted to strings with `Kernel.inspect/1`.
 
 ```elixir
 defmodule MyApp.Worker do
   use OpenTelemetryDecorator
-  alias OpenTelemetryDecorator.Attributes
 
   @decorate with_span("worker.do_work")
   def do_work(arg1, arg2) do
-    Attributes.set(arg1: arg1, arg2: arg2)
+    O11y.set_attributes(arg1: arg1, arg2: arg2)
     # ...doing work
-    Attributes.set(:output, "something")
+    Attributes.set_attribute(:output, "something")
   end
 end
 ```
@@ -113,30 +101,23 @@ end
 ## Configuration
 
 ### Prefixing Span Attributes
-Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically putting manual instrumentation under `app.`
+Honeycomb suggests that you [namespace custom fields](https://docs.honeycomb.io/getting-data-in/data-best-practices/#namespace-custom-fields), specifically prefixing manual instrumentation with `app`
 
-In order to do this, you'll configure the `attr_prefix` option in `config/config.exs`
+✳️ You can now set this in the underlying `o11y` library with the `attribute_namespace` option ✳️
+
+```elixir
+config :o11y, :attribute_namespace, "app"
+```
+
+⚠️ You can still configure it with the `attr_prefix` option in `config/config.exs`, but that will be deprecated in a future release. ⚠️
+
 ```elixir
 config :open_telemetry_decorator, attr_prefix: "app."
 ```
 
 ### Changing the join character for nested attributes
-By default, nested attributes are joined with an underscore. However, when you have an object with underscores and a property with underscores, this can be hard to visually parse. For example, `my_struct.other_struct.field`, would be exported as `my_struct_other_struct_field`.
 
-To override this, you'll configure the `attr_joiner` option in `config/config.exs`. The default value will likely change from `_` to `.` in a future version.
-```elixir
-config :open_telemetry_decorator, attr_joiner: "."
-```
-
-Thanks to @benregn for the examples and inspiration for these two options!
-
-### Switching to the v2 Attributes module
-
-I'm dropping support for specifying nested attributes in the `include` option, but will be adding the ability to implement a protocol that will let you define which keys to include as span attributes and what they should be called. In the meantime, I will default to the v1 version of the Attributes module, and expose a configuration option to opt in to the v2 version.
-
-```elixir
-config :open_telemetry_decorator, attrs_version: "v2"
-```
+⚠️ This configuration option is no longer available ⚠️
 
 ## Additional Examples
 
@@ -145,7 +126,7 @@ You can provide span attributes by specifying a list of variable names as atoms.
 This list can include...
 
 Any variables (in the top level closure) available when the function exits.
-Note that variables declared as part of a `with` block are in a separate scope so NOT available for `include` attributes
+Note that variables declared as part of an `if`, `case`, `cond`, or `with` block are in a separate scope so NOT available for `include` attributes.
 
 ```elixir
 defmodule MyApp.Math do
@@ -172,41 +153,18 @@ defmodule MyApp.Math do
 end
 ```
 
-Map/struct properties using nested lists of atoms:
+Structs will be converted to maps and included in the span attributes. You can specify which fields to include with the `@derive` attribute provided by `O11y`.
 
 ```elixir
-defmodule MyApp.Worker do
+defmodule User do
   use OpenTelemetryDecorator
 
-  @decorate with_span("my_app.worker.do_work", include: [[:arg1, :count], [:arg2, :count], :total])
-  def do_work(arg1, arg2) do
-    total = some_calculation(arg1.count, arg2.count)
-    {:ok, total}
-  end
-end
-```
+  @derive {O11y.SpanAttributes, only: [:id, :name]}
+  defstruct [:id, :name, :email, :password]
 
-```elixir
-defmodule MyApp.Worker do
-  use OpenTelemetryDecorator
-
-  @decorate with_span("my_app.worker.do_work", include: [[:calc, "sum"], [:calc, "product"]])
-  def do_work(obj) do
-    calc = %{"sum" => 10, "product" => 25}
-    {:ok, calc}
-  end
-end
-```
-
-The map/struct properties of the result of the function:
-
-```elixir
-defmodule MyApp.Math do
-  use OpenTelemetryDecorator
-
-  @decorate with_span("my_app.math.add", include: [[:result, :sum]])
-  def add(a, b) do
-    %{sum: a + b}
+  @decorate with_span("user.create", include: [:user])
+  def create(user) do
+    {:ok, user}
   end
 end
 ```

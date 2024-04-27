@@ -16,6 +16,7 @@ defmodule OpenTelemetryDecorator.MixProject do
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.html": :test, "coveralls.json": :test],
       start_permanent: Mix.env() == :prod,
+      consolidate_protocols: Mix.env() == :prod,
       package: package(),
       docs: docs(),
       deps: deps()

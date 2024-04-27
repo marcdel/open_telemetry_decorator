@@ -57,12 +57,12 @@ defmodule OpenTelemetryDecorator do
       parent_span = O11y.start_span(unquote(span_name), links: links)
       new_span = Tracer.current_span_ctx()
 
+      prefix = Attributes.attribute_prefix()
+
       input_params =
         Kernel.binding()
-        |> Attributes.get(unquote(include))
         |> Keyword.delete(:result)
-
-      Attributes.set(input_params)
+        |> O11y.set_attributes(namespace: prefix)
 
       try do
         result = unquote(body)
@@ -72,10 +72,9 @@ defmodule OpenTelemetryDecorator do
 
         Kernel.binding()
         |> Keyword.put(:result, result)
-        |> Attributes.get(unquote(include))
+        |> Keyword.take(unquote(include))
         |> Keyword.merge(input_params)
-        |> Enum.map(fn {k, v} -> {Atom.to_string(k), v} end)
-        |> Attributes.set()
+        |> O11y.set_attributes(namespace: prefix)
 
         result
       rescue

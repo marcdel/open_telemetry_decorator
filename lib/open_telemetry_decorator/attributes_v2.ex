@@ -1,28 +1,33 @@
 defmodule OpenTelemetryDecorator.AttributesV2 do
   @moduledoc false
+
+  import O11y.Attributes, only: [is_otlp_value: 1]
+
+  alias OpenTelemetryDecorator.Attributes
+
+  require Logger
   require OpenTelemetry.Tracer, as: Tracer
-  require OpenTelemetry.Span, as: Span
 
-  def set(span_ctx, name, value) do
-    Span.set_attribute(span_ctx, Atom.to_string(derived_name(name)), to_otlp_value(value))
+  def set(span_ctx, name, value) when is_tuple(span_ctx) do
+    Tracer.set_current_span(span_ctx)
+    set(name, value)
   end
 
-  def set(name, value) when is_binary(name) or is_atom(name) do
-    set(Tracer.current_span_ctx(), name, value)
+  def set(span_ctx, attributes) when is_tuple(span_ctx) do
+    Tracer.set_current_span(span_ctx)
+    set(attributes)
   end
 
-  def set(span_ctx, attributes) do
-    Enum.map(attributes, fn {key, value} ->
-      set(span_ctx, key, value)
-    end)
+  def set(name, value) when is_map(value) or is_struct(value) do
+    O11y.set_attributes(value, prefix: name, namespace: Attributes.attribute_prefix())
   end
 
-  def set(attributes) when is_struct(attributes) do
-    set(Map.from_struct(attributes))
+  def set(name, value) do
+    O11y.set_attribute(name, value, namespace: Attributes.attribute_prefix())
   end
 
   def set(attributes) do
-    set(Tracer.current_span_ctx(), attributes)
+    O11y.set_attributes(attributes, namespace: Attributes.attribute_prefix())
   end
 
   def get(all_attributes, requested_attributes) when is_list(all_attributes) do
@@ -66,9 +71,6 @@ defmodule OpenTelemetryDecorator.AttributesV2 do
 
   defp remove_underscore("_" <> name), do: name
   defp remove_underscore(name), do: name
-
-  defguard is_otlp_value(value)
-           when is_binary(value) or is_integer(value) or is_boolean(value) or is_float(value)
 
   defp to_otlp_value(value) when is_otlp_value(value), do: value
   defp to_otlp_value(value), do: inspect(value)

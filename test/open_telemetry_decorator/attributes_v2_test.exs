@@ -44,6 +44,22 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
              }
     end
 
+    test "cannot handle single attributes without a name" do
+      Tracer.with_span "important_stuff" do
+        Attributes.set([1, 2, 3])
+        Attributes.set({:error, "too sick bro"})
+        Attributes.set(:pink)
+        Attributes.set("boop")
+        Attributes.set(12)
+        Attributes.set(1.2)
+        Attributes.set(true)
+      end
+
+      assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
+
+      assert get_span_attributes(attrs) == %{}
+    end
+
     test "can take a map" do
       Tracer.with_span "important_stuff" do
         Attributes.set(%{beep: "boop", count: 12, maths: 1.2, failed: true})
@@ -74,6 +90,10 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
              }
     end
 
+    defmodule User do
+      defstruct [:id, :name]
+    end
+
     test "inspect()s non-otlp attributes before setting them on the current span" do
       Tracer.with_span "whaaaat" do
         Attributes.set(:result, {:error, "too sick bro"})
@@ -81,14 +101,17 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
         Attributes.set(:numbers, [1, 2, 3, 4])
         Attributes.set(:object, %{id: 1})
         Attributes.set(:params, %{"id" => 1})
+        Attributes.set(:user, %User{id: 1, name: "jane"})
       end
 
       expected = %{
         "result" => "{:error, \"too sick bro\"}",
-        "color" => ":pink",
+        "color" => :pink,
         "numbers" => "[1, 2, 3, 4]",
-        "object" => "%{id: 1}",
-        "params" => "%{\"id\" => 1}"
+        "object.id" => 1,
+        "params.id" => 1,
+        "user.id" => 1,
+        "user.name" => "jane"
       }
 
       assert_receive {:span, span(name: "whaaaat", attributes: attrs)}
@@ -126,18 +149,14 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
       assert get_span_attributes(attrs) == expected
     end
 
-    test "does not prefix the error attribute" do
+    test "we no longer treat the error attribute differently" do
       Tracer.with_span "important_stuff" do
         Attributes.set(:error, "too sick bro")
       end
 
-      expected = %{
-        "error" => "too sick bro"
-      }
-
       assert_receive {:span, span(name: "important_stuff", attributes: attrs)}
 
-      assert get_span_attributes(attrs) == expected
+      assert get_span_attributes(attrs) == %{"app.error" => "too sick bro"}
     end
   end
 
@@ -157,6 +176,7 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
       assert [{:val, true}] == Attributes.get([val: true], [:val])
       assert [{:val, 42}] == Attributes.get([val: 42], [:val])
       assert [{:val, "a string"}] == Attributes.get([val: "a string"], [:val])
+      assert [{:val, :atom}] == Attributes.get([val: :atom], [:val])
     end
 
     test "when target value is falsy, don't return (OTLP doesn't save these attributes)" do
@@ -165,7 +185,6 @@ defmodule OpenTelemetryDecorator.AttributesV2Test do
     end
 
     test "when target value is NOT a valid OTLP type, fall back to `inspect`" do
-      assert [{:val, ":atom"}] == Attributes.get([val: :atom], [:val])
       assert [{:val, "{:ok, 1}"}] == Attributes.get([val: {:ok, 1}], [:val])
       assert [{:val, "[1, 2, 3, 4]"}] == Attributes.get([val: [1, 2, 3, 4]], [:val])
       assert [{:obj, "%{id: 1}"}] == Attributes.get([obj: %{id: 1}], [:obj])
