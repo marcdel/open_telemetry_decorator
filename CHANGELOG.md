@@ -1,6 +1,11 @@
 # OpenTelemetryDecorator
 
+## v1.5.1
+
+- Fixes a bug with missing `attrs_version`
+
 ## v1.5.0
+
 - 🚨 The decorator now uses the `O11y.set_attribute(s)` functions to set attributes on spans. This means that the attribute processing logic that was here previously has been migrated there. However, there are some backwards incompatible changes listed below.
 - 🚨 The decorator no longer supports nested attributes in the `include` option. The `O11y` `set_attribute` and `set_attributes` functions should now be used to handle more complex attribute specifications. The `SpanAttributes` protocol in particular is what I recommend if you need to extract a subset of fields from an object. The example below will add only `user.id` and `user.name` to the span attributes.
 
