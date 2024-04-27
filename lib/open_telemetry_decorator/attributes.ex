@@ -26,7 +26,7 @@ defmodule OpenTelemetryDecorator.Attributes do
   def attribute_prefix do
     prefix =
       :open_telemetry_decorator
-      |> Application.get_env(:attr_prefix)
+      |> Application.get_env(:attr_prefix, "")
       |> String.trim()
       |> String.trim_trailing(".")
 
