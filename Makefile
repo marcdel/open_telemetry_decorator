@@ -15,10 +15,10 @@ check: _build/dev _build/test
 	mix test
 	mix credo --strict
 	mix deps.unlock --check-unused
-	mix hex.outdated
 	mix dialyzer
 	mix format
 	mix docs
+	mix hex.outdated
 	@echo "OK"
 
 mix.lock deps: mix.exs
