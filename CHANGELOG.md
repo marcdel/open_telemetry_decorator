@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.5.2
+
+- Fixes a bug which included input parameters you didn't ask for in the span attributes.
+
 ## v1.5.1
 
 - Fixes a bug with missing `attrs_version`

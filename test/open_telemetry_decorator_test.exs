@@ -173,7 +173,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert %{"app.x" => 1, "app.y" => 1} = span.attributes
     end
 
-    test "does not write input parameters not in the include " do
+    test "does not write input parameters not in the include" do
       defmodule InputExample do
         use OpenTelemetryDecorator
 
