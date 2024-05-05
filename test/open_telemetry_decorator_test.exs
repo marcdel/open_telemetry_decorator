@@ -48,7 +48,7 @@ defmodule OpenTelemetryDecoratorTest do
         end
       end
 
-      @decorate with_span("Example.parse_params", include: [[:params, "id"]])
+      @decorate with_span("Example.parse_params", include: [:params])
       def parse_params(params) do
         %{"id" => id} = params
 
@@ -171,6 +171,23 @@ defmodule OpenTelemetryDecoratorTest do
 
       span = assert_span("param_override")
       assert %{"app.x" => 1, "app.y" => 1} = span.attributes
+    end
+
+    test "does not write input parameters not in the include " do
+      defmodule InputExample do
+        use OpenTelemetryDecorator
+
+        @decorate with_span("inputs", include: [:x])
+        def inputs(x, y) do
+          z = x + y
+          {:ok, z}
+        end
+      end
+
+      assert {:ok, 3} = InputExample.inputs(1, 2)
+
+      span = assert_span("inputs")
+      assert span.attributes == %{"app.x" => 1}
     end
 
     test "overwrites the default result value" do

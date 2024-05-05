@@ -62,6 +62,7 @@ defmodule OpenTelemetryDecorator do
       input_params =
         Kernel.binding()
         |> Keyword.delete(:result)
+        |> Keyword.take(unquote(include))
         |> O11y.set_attributes(namespace: prefix)
 
       try do
@@ -72,8 +73,8 @@ defmodule OpenTelemetryDecorator do
 
         Kernel.binding()
         |> Keyword.put(:result, result)
-        |> Keyword.take(unquote(include))
         |> Keyword.merge(input_params)
+        |> Keyword.take(unquote(include))
         |> O11y.set_attributes(namespace: prefix)
 
         result
