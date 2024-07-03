@@ -69,6 +69,11 @@ defmodule OpenTelemetryDecoratorTest do
         File.read!("#{file_name}.#{body_var}")
       end
 
+      @decorate with_span("Example.with_exit")
+      def with_exit(exit_args) do
+        exit(exit_args)
+      end
+
       @decorate with_span("Example.with_error")
       def with_error, do: Attributes.set(:error, "ruh roh!")
 
@@ -222,6 +227,18 @@ defmodule OpenTelemetryDecoratorTest do
           assert Exception.format(:error, e, __STACKTRACE__) =~ "File.read!/1"
           span = assert_span("Example.with_exception")
           assert [%{name: "exception"}] = span.events
+      end
+    end
+
+    test "catches exists, sets errors, and re-throws" do
+      try do
+        Example.with_exit(:bad_times)
+        flunk("Should have re-raised the exception")
+      catch
+        :exit, :bad_times ->
+          span = assert_span("Example.with_exit")
+          assert span.status.code == :error
+          assert span.status.message == "exit:bad_times"
       end
     end
 
