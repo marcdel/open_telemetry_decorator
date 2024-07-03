@@ -82,6 +82,10 @@ defmodule OpenTelemetryDecorator do
         e ->
           O11y.record_exception(e)
           reraise e, __STACKTRACE__
+      catch
+        class, reason ->
+          O11y.set_error("#{class}:#{reason}")
+          :erlang.raise(class, reason, __STACKTRACE__)
       after
         O11y.end_span(parent_span)
       end
