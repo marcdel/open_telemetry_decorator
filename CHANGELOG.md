@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.5.4
+
+- Catch unhandled Erlang exits and add an error status to the span.
+
 ## v1.5.3
 
 - Bumps o11y version to v0.2.4 which includes an `add_event` method that processes the attributes given to it the same way `with_span` does.
