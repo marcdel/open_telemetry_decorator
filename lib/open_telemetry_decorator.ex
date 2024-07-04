@@ -90,11 +90,18 @@ defmodule OpenTelemetryDecorator do
           O11y.set_attribute(:exit, :shutdown, namespace: prefix)
 
         :exit, {:shutdown, reason} ->
-          O11y.set_attributes([exit: :shutdown, shutdown_reason: reason], namespace: prefix)
+          O11y.set_attributes(
+            [exit: :shutdown, shutdown_reason: inspect(reason)],
+            namespace: prefix
+          )
 
         :exit, reason ->
-          O11y.set_error("exited: #{reason}")
+          O11y.set_error("exited: #{inspect(reason)}")
           :erlang.raise(:exit, reason, __STACKTRACE__)
+
+        :throw, thrown ->
+          O11y.set_error("uncaught: #{inspect(thrown)}")
+          :erlang.raise(:throw, thrown, __STACKTRACE__)
       after
         O11y.end_span(parent_span)
       end
