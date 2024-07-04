@@ -83,9 +83,18 @@ defmodule OpenTelemetryDecorator do
           O11y.record_exception(e)
           reraise e, __STACKTRACE__
       catch
-        class, reason ->
-          O11y.set_error("#{class}:#{reason}")
-          :erlang.raise(class, reason, __STACKTRACE__)
+        :exit, :normal ->
+          O11y.set_attribute(:exit, :normal, namespace: prefix)
+
+        :exit, :shutdown ->
+          O11y.set_attribute(:exit, :shutdown, namespace: prefix)
+
+        :exit, {:shutdown, reason} ->
+          O11y.set_attributes([exit: :shutdown, shutdown_reason: reason], namespace: prefix)
+
+        :exit, reason ->
+          O11y.set_error("exited: #{reason}")
+          :erlang.raise(:exit, reason, __STACKTRACE__)
       after
         O11y.end_span(parent_span)
       end

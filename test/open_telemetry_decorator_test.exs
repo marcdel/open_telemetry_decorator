@@ -238,8 +238,47 @@ defmodule OpenTelemetryDecoratorTest do
         :exit, :bad_times ->
           span = assert_span("Example.with_exit")
           assert span.status.code == :error
-          assert span.status.message == "exit:bad_times"
+          assert span.status.message == "exited: bad_times"
       end
+    end
+
+    test "normal exits don't throw or set errors" do
+      Example.with_exit(:normal)
+      span = assert_span("Example.with_exit")
+      assert span.status.code == :unset
+      assert span.status.message == ""
+    end
+
+    test "normal exits add an exit attribute" do
+      Example.with_exit(:normal)
+      span = assert_span("Example.with_exit")
+      assert span.attributes == %{"app.exit" => :normal}
+    end
+
+    test "shutdowns don't throw or set errors" do
+      Example.with_exit(:shutdown)
+      span = assert_span("Example.with_exit")
+      assert span.status.code == :unset
+      assert span.status.message == ""
+    end
+
+    test "shutdowns add an exit attribute" do
+      Example.with_exit(:shutdown)
+      span = assert_span("Example.with_exit")
+      assert span.attributes == %{"app.exit" => :shutdown}
+    end
+
+    test "shutdowns with a reason don't throw or set errors" do
+      Example.with_exit({:shutdown, :chillin})
+      span = assert_span("Example.with_exit")
+      assert span.status.code == :unset
+      assert span.status.message == ""
+    end
+
+    test "shutdowns with a reason add exit and shutdown_reason attributes" do
+      Example.with_exit({:shutdown, :chillin})
+      span = assert_span("Example.with_exit")
+      assert span.attributes == %{"app.exit" => :shutdown, "app.shutdown_reason" => :chillin}
     end
 
     test "adds included input params on exception" do
