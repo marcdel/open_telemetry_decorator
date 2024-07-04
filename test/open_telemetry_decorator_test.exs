@@ -74,6 +74,11 @@ defmodule OpenTelemetryDecoratorTest do
         exit(exit_args)
       end
 
+      @decorate with_span("Example.with_throw")
+      def with_throw(throw_args) do
+        throw(throw_args)
+      end
+
       @decorate with_span("Example.with_error")
       def with_error, do: Attributes.set(:error, "ruh roh!")
 
@@ -230,15 +235,15 @@ defmodule OpenTelemetryDecoratorTest do
       end
     end
 
-    test "catches exists, sets errors, and re-throws" do
+    test "catches exits, sets errors, and re-throws" do
       try do
-        Example.with_exit(:bad_times)
+        Example.with_exit(%{bad: :times})
         flunk("Should have re-raised the exception")
       catch
-        :exit, :bad_times ->
+        :exit, %{bad: :times} ->
           span = assert_span("Example.with_exit")
           assert span.status.code == :error
-          assert span.status.message == "exited: bad_times"
+          assert span.status.message == "exited: %{bad: :times}"
       end
     end
 
@@ -276,9 +281,25 @@ defmodule OpenTelemetryDecoratorTest do
     end
 
     test "shutdowns with a reason add exit and shutdown_reason attributes" do
-      Example.with_exit({:shutdown, :chillin})
+      Example.with_exit({:shutdown, %{just: :chillin}})
       span = assert_span("Example.with_exit")
-      assert span.attributes == %{"app.exit" => :shutdown, "app.shutdown_reason" => :chillin}
+
+      assert span.attributes == %{
+               "app.exit" => :shutdown,
+               "app.shutdown_reason" => "%{just: :chillin}"
+             }
+    end
+
+    test "catches throws, sets errors, and re-throws" do
+      try do
+        Example.with_throw(%{catch: :this})
+        flunk("Should have re-raised the exception")
+      catch
+        :throw, %{catch: :this} ->
+          span = assert_span("Example.with_throw")
+          assert span.status.code == :error
+          assert span.status.message == "uncaught: %{catch: :this}"
+      end
     end
 
     test "adds included input params on exception" do
