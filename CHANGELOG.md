@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.5.6
+
+- 🐞BUG FIX: v1.5.4 introduced a bug where exits were being caught and the span annotated, but then control flow continued as if the exit had not occurred. We now exit with the same reason that was caught, so control flow is unchanged.
+
 ## v1.5.5
 
 - Decorator will catch throws as well as exits and add an error status to the span.
