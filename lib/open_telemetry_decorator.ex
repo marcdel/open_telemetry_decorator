@@ -85,15 +85,19 @@ defmodule OpenTelemetryDecorator do
       catch
         :exit, :normal ->
           O11y.set_attribute(:exit, :normal, namespace: prefix)
+          exit(:normal)
 
         :exit, :shutdown ->
           O11y.set_attribute(:exit, :shutdown, namespace: prefix)
+          exit(:shutdown)
 
         :exit, {:shutdown, reason} ->
           O11y.set_attributes(
             [exit: :shutdown, shutdown_reason: reason],
             namespace: prefix
           )
+
+          exit({:shutdown, reason})
 
         :exit, reason ->
           O11y.set_error("exited: #{inspect(reason)}")

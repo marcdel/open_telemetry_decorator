@@ -74,6 +74,11 @@ defmodule OpenTelemetryDecoratorTest do
         exit(exit_args)
       end
 
+      @decorate with_span("Example.with_process_exit")
+      def with_process_exit(exit_args) do
+        exit(exit_args)
+      end
+
       @decorate with_span("Example.with_throw")
       def with_throw(throw_args) do
         throw(throw_args)
@@ -248,46 +253,76 @@ defmodule OpenTelemetryDecoratorTest do
     end
 
     test "normal exits don't throw or set errors" do
-      Example.with_exit(:normal)
-      span = assert_span("Example.with_exit")
-      assert span.status.code == :unset
-      assert span.status.message == ""
+      try do
+        Example.with_exit(:normal)
+        flunk("Should have continued normal exit")
+      catch
+        :exit, :normal ->
+          span = assert_span("Example.with_exit")
+          assert span.status.code == :unset
+          assert span.status.message == ""
+      end
     end
 
     test "normal exits add an exit attribute" do
-      Example.with_exit(:normal)
-      span = assert_span("Example.with_exit")
-      assert span.attributes == %{"app.exit" => :normal}
+      try do
+        Example.with_exit(:normal)
+        flunk("Should have continued normal exit")
+      catch
+        :exit, :normal ->
+          span = assert_span("Example.with_exit")
+          assert span.attributes == %{"app.exit" => :normal}
+      end
     end
 
     test "shutdowns don't throw or set errors" do
-      Example.with_exit(:shutdown)
-      span = assert_span("Example.with_exit")
-      assert span.status.code == :unset
-      assert span.status.message == ""
+      try do
+        Example.with_exit(:shutdown)
+        flunk("Should have continued normal shutdown")
+      catch
+        :exit, :shutdown ->
+          span = assert_span("Example.with_exit")
+          assert span.status.code == :unset
+          assert span.status.message == ""
+      end
     end
 
     test "shutdowns add an exit attribute" do
-      Example.with_exit(:shutdown)
-      span = assert_span("Example.with_exit")
-      assert span.attributes == %{"app.exit" => :shutdown}
+      try do
+        Example.with_exit(:shutdown)
+        flunk("Should have continued normal shutdown")
+      catch
+        :exit, :shutdown ->
+          span = assert_span("Example.with_exit")
+          assert span.attributes == %{"app.exit" => :shutdown}
+      end
     end
 
     test "shutdowns with a reason don't throw or set errors" do
-      Example.with_exit({:shutdown, :chillin})
-      span = assert_span("Example.with_exit")
-      assert span.status.code == :unset
-      assert span.status.message == ""
+      try do
+        Example.with_exit({:shutdown, :chillin})
+        flunk("Should have continued normal shutdown")
+      catch
+        :exit, {:shutdown, _reason} ->
+          span = assert_span("Example.with_exit")
+          assert span.status.code == :unset
+          assert span.status.message == ""
+      end
     end
 
     test "shutdowns with a reason add exit and shutdown_reason attributes" do
-      Example.with_exit({:shutdown, %{just: :chillin}})
-      span = assert_span("Example.with_exit")
+      try do
+        Example.with_exit({:shutdown, %{just: :chillin}})
+        flunk("Should have continued normal shutdown")
+      catch
+        :exit, {:shutdown, _reason} ->
+          span = assert_span("Example.with_exit")
 
-      assert span.attributes == %{
-               "app.exit" => :shutdown,
-               "app.shutdown_reason.just" => :chillin
-             }
+          assert span.attributes == %{
+                   "app.exit" => :shutdown,
+                   "app.shutdown_reason.just" => :chillin
+                 }
+      end
     end
 
     test "catches throws, sets errors, and re-throws" do
