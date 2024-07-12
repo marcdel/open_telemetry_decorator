@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.5.5
+
+- Decorator will catch throws as well as exits and add an error status to the span.
+
 ## v1.5.4
 
 - Catch unhandled Erlang exits and add an error status to the span.
