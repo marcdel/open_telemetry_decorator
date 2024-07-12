@@ -286,7 +286,7 @@ defmodule OpenTelemetryDecoratorTest do
 
       assert span.attributes == %{
                "app.exit" => :shutdown,
-               "app.shutdown_reason" => "%{just: :chillin}"
+               "app.shutdown_reason.just" => :chillin
              }
     end
 

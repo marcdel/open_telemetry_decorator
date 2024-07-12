@@ -91,7 +91,7 @@ defmodule OpenTelemetryDecorator do
 
         :exit, {:shutdown, reason} ->
           O11y.set_attributes(
-            [exit: :shutdown, shutdown_reason: inspect(reason)],
+            [exit: :shutdown, shutdown_reason: reason],
             namespace: prefix
           )
 
