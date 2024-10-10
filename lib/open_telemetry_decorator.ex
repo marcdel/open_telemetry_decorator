@@ -65,6 +65,8 @@ defmodule OpenTelemetryDecorator do
         |> Keyword.take(unquote(include))
         |> O11y.set_attributes(namespace: prefix)
 
+      O11y.set_attributes(pid: self())
+
       try do
         result = unquote(body)
 
