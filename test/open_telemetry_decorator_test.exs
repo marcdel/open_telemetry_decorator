@@ -89,6 +89,18 @@ defmodule OpenTelemetryDecoratorTest do
 
       @decorate with_span("Example.with_link", links: [:_span_link])
       def with_link(_span_link), do: :ok
+
+      @decorate with_span("Example.with_pid", include: [:_self])
+      def with_pid, do: :ok
+    end
+
+    test "pids" do
+      expected_pid = inspect(self())
+
+      Example.with_pid()
+
+      span = assert_span("Example.with_pid")
+      assert span.attributes == %{"pid" => expected_pid}
     end
 
     test "does not modify inputs or function result" do
@@ -188,7 +200,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert %{"app.x" => 1, "app.y" => 1} = span.attributes
     end
 
-    test "does not write input parameters not in the include" do
+    test "does not write input parameters not in the include (except pid)" do
       defmodule InputExample do
         use OpenTelemetryDecorator
 
@@ -202,7 +214,7 @@ defmodule OpenTelemetryDecoratorTest do
       assert {:ok, 3} = InputExample.inputs(1, 2)
 
       span = assert_span("inputs")
-      assert span.attributes == %{"app.x" => 1}
+      assert span.attributes == %{"app.x" => 1, "pid" => inspect(self())}
     end
 
     test "overwrites the default result value" do
@@ -225,7 +237,7 @@ defmodule OpenTelemetryDecoratorTest do
       Example.no_include(include_me: "nope")
 
       span = assert_span("Example.no_include")
-      assert %{} == span.attributes
+      assert span.attributes == %{"pid" => inspect(self())}
     end
 
     test "records an exception event" do
@@ -271,7 +283,7 @@ defmodule OpenTelemetryDecoratorTest do
       catch
         :exit, :normal ->
           span = assert_span("Example.with_exit")
-          assert span.attributes == %{"app.exit" => :normal}
+          assert %{"app.exit" => :normal} = span.attributes
       end
     end
 
@@ -294,7 +306,7 @@ defmodule OpenTelemetryDecoratorTest do
       catch
         :exit, :shutdown ->
           span = assert_span("Example.with_exit")
-          assert span.attributes == %{"app.exit" => :shutdown}
+          assert %{"app.exit" => :shutdown} = span.attributes
       end
     end
 
@@ -318,10 +330,8 @@ defmodule OpenTelemetryDecoratorTest do
         :exit, {:shutdown, _reason} ->
           span = assert_span("Example.with_exit")
 
-          assert span.attributes == %{
-                   "app.exit" => :shutdown,
-                   "app.shutdown_reason.just" => :chillin
-                 }
+          assert %{"app.exit" => :shutdown, "app.shutdown_reason.just" => :chillin} =
+                   span.attributes
       end
     end
 
