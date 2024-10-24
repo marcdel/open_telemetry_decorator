@@ -236,7 +236,7 @@ defmodule OpenTelemetryDecoratorTest do
         e ->
           assert Exception.format(:error, e, __STACKTRACE__) =~ "File.read!/1"
           span = assert_span("Example.with_exception")
-          assert [%{name: "exception"}] = span.events
+          assert [%{name: :exception}] = span.events
       end
     end
 
