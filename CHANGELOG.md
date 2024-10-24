@@ -1,5 +1,10 @@
 # OpenTelemetryDecorator
 
+## v1.5.7
+
+- Update dependencies
+- Add pid as a default span attribute
+
 ## v1.5.6
 
 - 🐞BUG FIX: v1.5.4 introduced a bug where exits were being caught and the span annotated, but then control flow continued as if the exit had not occurred. We now exit with the same reason that was caught, so control flow is unchanged.
