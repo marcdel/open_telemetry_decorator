@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.5.8
+
+- Update o11y and credo dependencies
+
 ## v1.5.7
 
 - Update dependencies
