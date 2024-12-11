@@ -1,5 +1,9 @@
 # OpenTelemetryDecorator
 
+## v1.5.9
+
+- Update dependencies: `dialyxir`, `ex_doc`, `o11y`
+
 ## v1.5.8
 
 - Update o11y and credo dependencies
