@@ -15,14 +15,14 @@ Add `open_telemetry_decorator` to your list of dependencies in `mix.exs`. We inc
 ```elixir
 def deps do
   [
-    {:opentelemetry, "~> 1.4"},
-    {:opentelemetry_exporter, "~> 1.7"},
+    {:opentelemetry, "~> 1.5"},
+    {:opentelemetry_exporter, "~> 1.8"},
     {:open_telemetry_decorator, "~> 1.5"}
   ]
 end
 ```
 
-Then follow the directions for the exporter of your choice to send traces to to zipkin, honeycomb, etc.
+Then follow the directions for the exporter of your choice to send traces to zipkin, honeycomb, etc.
 https://github.com/open-telemetry/opentelemetry-erlang/tree/main/apps/opentelemetry_zipkin
 
 ### Honeycomb Example
@@ -78,7 +78,7 @@ defmodule MyApp.Worker do
   def do_work(arg1, arg2) do
     O11y.set_attributes(arg1: arg1, arg2: arg2)
     # ...doing work
-    Attributes.set_attribute(:output, "something")
+    O11y.set_attribute(:output, "something")
   end
 end
 ```
