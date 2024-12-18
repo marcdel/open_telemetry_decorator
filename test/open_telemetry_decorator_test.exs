@@ -94,6 +94,51 @@ defmodule OpenTelemetryDecoratorTest do
       def with_pid, do: :ok
     end
 
+    defmodule BehaviorExample do
+      defmodule VCS do
+        @type sha :: binary()
+        @callback push(sha()) :: :ok
+      end
+
+      defmodule Git do
+        defmacro __using__(_opts) do
+          quote do
+            use OpenTelemetryDecorator
+
+            @behaviour VCS
+
+            @decorate with_span("Git.push")
+            def push(sha) do
+              O11y.set_attributes(vcs: :git, git_sha: sha)
+              :ok
+            end
+
+            defoverridable VCS
+          end
+        end
+      end
+
+      defmodule Github do
+        use Git
+        use OpenTelemetryDecorator
+
+        @decorate with_span("Github.push")
+        def push(sha) do
+          O11y.set_attributes(host: :github, github_sha: sha)
+          super(sha)
+        end
+      end
+    end
+
+    test "traces when super is called in a decorated function" do
+      BehaviorExample.Github.push("abc123")
+
+      git_span = assert_span("Git.push") |> dbg()
+      assert %{"vcs" => :git, "git_sha" => "abc123"} = git_span.attributes
+      github_span = assert_span("Github.push") |> dbg()
+      assert %{"vcs" => :git, "git_sha" => "abc123", "host" => :github, "github_sha" => "abc123"} = github_span.attributes
+    end
+
     test "pids" do
       expected_pid = inspect(self())
 
