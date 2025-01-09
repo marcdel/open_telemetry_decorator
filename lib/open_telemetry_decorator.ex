@@ -52,7 +52,6 @@ defmodule OpenTelemetryDecorator do
           Kernel.binding(),
           unquote(span_name),
           unquote(dynamic_links),
-          self(),
           unquote(include)
         )
 
@@ -77,7 +76,7 @@ defmodule OpenTelemetryDecorator do
       reraise %ArgumentError{message: "#{target} #{e.message}"}, __STACKTRACE__
   end
 
-  def prepare(binding, span_name, dynamic_links, pid, include) do
+  def prepare(binding, span_name, dynamic_links, include) do
     links =
       binding
       |> Enum.into(%{})
@@ -95,7 +94,7 @@ defmodule OpenTelemetryDecorator do
       |> Keyword.take(include)
       |> O11y.set_attributes(namespace: prefix)
 
-    O11y.set_attributes(pid: pid)
+    O11y.set_attributes(pid: self())
 
     %{
       new_span: new_span,
