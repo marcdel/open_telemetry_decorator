@@ -14,6 +14,8 @@ defmodule OpenTelemetryDecorator do
   alias OpenTelemetryDecorator.Attributes
   alias OpenTelemetryDecorator.Validator
 
+  require OpenTelemetry.Tracer, as: Tracer
+
   def trace(span_name, opts \\ [], body, context), do: with_span(span_name, opts, body, context)
 
   @doc """
@@ -44,77 +46,107 @@ defmodule OpenTelemetryDecorator do
 
     dynamic_links = Keyword.get(opts, :links, [])
 
-    quote location: :keep do
-      require OpenTelemetry.Tracer, as: Tracer
-      require OpenTelemetry.Span, as: Span
-
-      links =
-        Kernel.binding()
-        |> Enum.into(%{})
-        |> Map.take(unquote(dynamic_links))
-        |> Map.values()
-
-      parent_span = O11y.start_span(unquote(span_name), links: links)
-      new_span = Tracer.current_span_ctx()
-
-      prefix = Attributes.attribute_prefix()
-
-      input_params =
-        Kernel.binding()
-        |> Keyword.delete(:result)
-        |> Keyword.take(unquote(include))
-        |> O11y.set_attributes(namespace: prefix)
-
-      O11y.set_attributes(pid: self())
+    quote location: :keep, generated: true do
+      data =
+        unquote(__MODULE__).prepare(
+          Kernel.binding(),
+          unquote(span_name),
+          unquote(dynamic_links),
+          self(),
+          unquote(include)
+        )
 
       try do
         result = unquote(body)
-
-        # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
-        Tracer.set_current_span(new_span)
-
-        Kernel.binding()
-        |> Keyword.put(:result, result)
-        |> Keyword.merge(input_params)
-        |> Keyword.take(unquote(include))
-        |> O11y.set_attributes(namespace: prefix)
-
+        unquote(__MODULE__).done(result, Kernel.binding(), data)
         result
       rescue
         e ->
           O11y.record_exception(e)
           reraise e, __STACKTRACE__
       catch
-        :exit, :normal ->
-          O11y.set_attribute(:exit, :normal, namespace: prefix)
-          exit(:normal)
-
-        :exit, :shutdown ->
-          O11y.set_attribute(:exit, :shutdown, namespace: prefix)
-          exit(:shutdown)
-
-        :exit, {:shutdown, reason} ->
-          O11y.set_attributes(
-            [exit: :shutdown, shutdown_reason: reason],
-            namespace: prefix
-          )
-
-          exit({:shutdown, reason})
-
-        :exit, reason ->
-          O11y.set_error("exited: #{inspect(reason)}")
-          :erlang.raise(:exit, reason, __STACKTRACE__)
-
-        :throw, thrown ->
-          O11y.set_error("uncaught: #{inspect(thrown)}")
-          :erlang.raise(:throw, thrown, __STACKTRACE__)
+        kind, reason ->
+          unquote(__MODULE__).failed(kind, reason, data, __STACKTRACE__)
       after
-        O11y.end_span(parent_span)
+        O11y.end_span(data.parent_span)
       end
     end
   rescue
     e in ArgumentError ->
       target = "#{inspect(context.module)}.#{context.name}/#{context.arity} @decorate telemetry"
       reraise %ArgumentError{message: "#{target} #{e.message}"}, __STACKTRACE__
+  end
+
+  def prepare(binding, span_name, dynamic_links, pid, include) do
+    links =
+      binding
+      |> Enum.into(%{})
+      |> Map.take(dynamic_links)
+      |> Map.values()
+
+    parent_span = O11y.start_span(span_name, links: links)
+    new_span = Tracer.current_span_ctx()
+
+    prefix = Attributes.attribute_prefix()
+
+    input_params =
+      binding
+      |> Keyword.delete(:result)
+      |> Keyword.take(include)
+      |> O11y.set_attributes(namespace: prefix)
+
+    O11y.set_attributes(pid: pid)
+
+    %{
+      new_span: new_span,
+      input_params: input_params,
+      include: include,
+      prefix: prefix,
+      parent_span: parent_span
+    }
+  end
+
+  def done(result, binding, %{
+        new_span: new_span,
+        input_params: input_params,
+        include: include,
+        prefix: prefix
+      }) do
+    # Called functions can mess up Tracer's current span context, so ensure we at least write to ours
+    Tracer.set_current_span(new_span)
+
+    binding
+    |> Keyword.put(:result, result)
+    |> Keyword.merge(input_params)
+    |> Keyword.take(include)
+    |> O11y.set_attributes(namespace: prefix)
+  end
+
+  def failed(kind, reason, %{prefix: prefix}, stacktrace) do
+    case {kind, reason} do
+      {:exit, :normal} ->
+        O11y.set_attribute(:exit, :normal, namespace: prefix)
+        exit(:normal)
+
+      {:exit, :shutdown} ->
+        O11y.set_attribute(:exit, :shutdown, namespace: prefix)
+        exit(:shutdown)
+
+      {:exit, {:shutdown, reason}} ->
+        O11y.set_attributes(
+          [exit: :shutdown, shutdown_reason: reason],
+          namespace: prefix
+        )
+
+        exit({:shutdown, reason})
+
+      {:exit, reason} ->
+        O11y.set_error("exited: #{inspect(reason)}")
+        :erlang.raise(:exit, reason, stacktrace)
+
+      {:throw, thrown} ->
+        O11y.set_error("uncaught: #{inspect(thrown)}")
+        :erlang.raise(:throw, thrown, stacktrace)
+    end
   end
 end
